@@ -1,5 +1,10 @@
 -- M0 foundation schema per PRD §5 and §6.
--- Run against the Neon `dev` branch first, always (§13.2).
+-- Applied automatically on server startup; runs against the Neon `dev` branch
+-- before `main`, always (§13.2).
+--
+-- Written to be idempotent: every object uses IF NOT EXISTS (or is replaced),
+-- so re-running against a database that already holds part or all of this
+-- schema completes cleanly instead of colliding.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -8,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 -- (password_hash is an implementation detail of M0 email+password auth;
 --  it is null for interviewer_no_login, who has no credentials by design.)
 -- ---------------------------------------------------------------------------
-CREATE TABLE staff (
+CREATE TABLE IF NOT EXISTS staff (
   staff_id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name          text NOT NULL,
   department    text,
@@ -21,7 +26,7 @@ CREATE TABLE staff (
 -- ---------------------------------------------------------------------------
 -- §5.1 person — one record per human, the permanent asset
 -- ---------------------------------------------------------------------------
-CREATE TABLE person (
+CREATE TABLE IF NOT EXISTS person (
   person_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   full_name       text NOT NULL,
   phone           text NOT NULL UNIQUE, -- primary dedupe key, E.164 normalised on write
@@ -40,12 +45,12 @@ CREATE TABLE person (
   merged_into     uuid REFERENCES person(person_id)
 );
 
-CREATE INDEX idx_person_email ON person(email);
+CREATE INDEX IF NOT EXISTS idx_person_email ON person(email);
 
 -- ---------------------------------------------------------------------------
 -- §5.2 campaign — a role opening
 -- ---------------------------------------------------------------------------
-CREATE TABLE campaign (
+CREATE TABLE IF NOT EXISTS campaign (
   campaign_id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   role_title               text NOT NULL,
   department               text NOT NULL,
@@ -64,7 +69,7 @@ CREATE TABLE campaign (
 -- ---------------------------------------------------------------------------
 -- §5.9 question — the question bank
 -- ---------------------------------------------------------------------------
-CREATE TABLE question (
+CREATE TABLE IF NOT EXISTS question (
   question_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   text        text NOT NULL,
   type        text NOT NULL CHECK (type IN ('short_text', 'long_text', 'select', 'multi_select', 'url', 'file', 'number')),
@@ -75,7 +80,7 @@ CREATE TABLE question (
 -- ---------------------------------------------------------------------------
 -- §5.3 campaign_question — join between campaign and question bank
 -- ---------------------------------------------------------------------------
-CREATE TABLE campaign_question (
+CREATE TABLE IF NOT EXISTS campaign_question (
   campaign_question_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id          uuid NOT NULL REFERENCES campaign(campaign_id),
   question_id          uuid NOT NULL REFERENCES question(question_id),
@@ -84,12 +89,12 @@ CREATE TABLE campaign_question (
   is_knockout          boolean NOT NULL DEFAULT false -- tag and triage only, never auto-reject
 );
 
-CREATE INDEX idx_campaign_question_campaign ON campaign_question(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_campaign_question_campaign ON campaign_question(campaign_id);
 
 -- ---------------------------------------------------------------------------
 -- §5.4 application — person + campaign; where stage and outcome live
 -- ---------------------------------------------------------------------------
-CREATE TABLE application (
+CREATE TABLE IF NOT EXISTS application (
   application_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   person_id            uuid NOT NULL REFERENCES person(person_id),
   campaign_id          uuid NOT NULL REFERENCES campaign(campaign_id),
@@ -128,15 +133,15 @@ CREATE TABLE application (
   )
 );
 
-CREATE INDEX idx_application_person ON application(person_id);
-CREATE INDEX idx_application_campaign ON application(campaign_id);
-CREATE INDEX idx_application_owner ON application(owner_staff_id);
-CREATE INDEX idx_application_stage ON application(stage);
+CREATE INDEX IF NOT EXISTS idx_application_person ON application(person_id);
+CREATE INDEX IF NOT EXISTS idx_application_campaign ON application(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_application_owner ON application(owner_staff_id);
+CREATE INDEX IF NOT EXISTS idx_application_stage ON application(stage);
 
 -- ---------------------------------------------------------------------------
 -- §5.5 screen — the telephonic screening round, a first-class record
 -- ---------------------------------------------------------------------------
-CREATE TABLE screen (
+CREATE TABLE IF NOT EXISTS screen (
   screen_id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   application_id        uuid NOT NULL REFERENCES application(application_id),
   conducted_by_staff_id uuid NOT NULL REFERENCES staff(staff_id),
@@ -147,15 +152,15 @@ CREATE TABLE screen (
   notes                 text
 );
 
-CREATE INDEX idx_screen_application ON screen(application_id);
-CREATE INDEX idx_screen_conducted_by ON screen(conducted_by_staff_id);
+CREATE INDEX IF NOT EXISTS idx_screen_application ON screen(application_id);
+CREATE INDEX IF NOT EXISTS idx_screen_conducted_by ON screen(conducted_by_staff_id);
 
 -- ---------------------------------------------------------------------------
 -- §5.6 round — interview rounds, generic and unlimited
 -- (interviewer_staff_ids is a uuid array; membership in staff is enforced at
 --  the application layer since Postgres cannot FK array elements.)
 -- ---------------------------------------------------------------------------
-CREATE TABLE round (
+CREATE TABLE IF NOT EXISTS round (
   round_id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   application_id        uuid NOT NULL REFERENCES application(application_id),
   round_number          integer NOT NULL,
@@ -174,12 +179,12 @@ CREATE TABLE round (
   UNIQUE (application_id, round_number)
 );
 
-CREATE INDEX idx_round_application ON round(application_id);
+CREATE INDEX IF NOT EXISTS idx_round_application ON round(application_id);
 
 -- ---------------------------------------------------------------------------
 -- §5.8 event — append-only activity log
 -- ---------------------------------------------------------------------------
-CREATE TABLE event (
+CREATE TABLE IF NOT EXISTS event (
   event_id       uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   person_id      uuid NOT NULL REFERENCES person(person_id),
   application_id uuid REFERENCES application(application_id),
@@ -194,9 +199,9 @@ CREATE TABLE event (
   note           text
 );
 
-CREATE INDEX idx_event_person ON event(person_id);
-CREATE INDEX idx_event_application ON event(application_id);
-CREATE INDEX idx_event_timestamp ON event(timestamp);
+CREATE INDEX IF NOT EXISTS idx_event_person ON event(person_id);
+CREATE INDEX IF NOT EXISTS idx_event_application ON event(application_id);
+CREATE INDEX IF NOT EXISTS idx_event_timestamp ON event(timestamp);
 
 -- Never edited, never deleted (§5.8). Enforced in the database itself.
 CREATE OR REPLACE FUNCTION forbid_event_mutation() RETURNS trigger AS $$
@@ -205,6 +210,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS event_append_only ON event;
 CREATE TRIGGER event_append_only
   BEFORE UPDATE OR DELETE ON event
   FOR EACH ROW EXECUTE FUNCTION forbid_event_mutation();
@@ -213,10 +219,10 @@ CREATE TRIGGER event_append_only
 -- Session store (app server is stateless per §13.1; sessions live in Postgres)
 -- Schema required by connect-pg-simple.
 -- ---------------------------------------------------------------------------
-CREATE TABLE session (
+CREATE TABLE IF NOT EXISTS session (
   sid    varchar PRIMARY KEY,
   sess   json NOT NULL,
   expire timestamptz NOT NULL
 );
 
-CREATE INDEX idx_session_expire ON session(expire);
+CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire);

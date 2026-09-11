@@ -2,6 +2,7 @@ import path from 'path';
 import express from 'express';
 import { config } from './config';
 import { runMigrations } from './db/migrate';
+import { verifySchema } from './db/verify';
 import { ensureAdminExists } from './bootstrap';
 import { sessionMiddleware } from './auth/session';
 import { authRouter } from './routes/auth';
@@ -42,6 +43,7 @@ app.use((err: Error, req: express.Request, res: express.Response, _next: express
  */
 async function start(): Promise<void> {
   await runMigrations();
+  await verifySchema();
   await ensureAdminExists();
   app.listen(config.port, () => {
     console.log(`recruitment-tool listening on ${config.appBaseUrl} (port ${config.port})`);
