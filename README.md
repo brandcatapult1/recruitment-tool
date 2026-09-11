@@ -11,9 +11,11 @@ development, Hostinger Cloud for production per PRD §13.2). On every boot the s
    and logs each file it runs (`[migrate] apply/skip ...`). A Postgres advisory lock prevents two
    booting instances from migrating at the same time. If a migration fails, startup aborts so a
    broken schema never serves traffic.
-2. **Creates the first admin** from `ADMIN_NAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment
-   variables — but only if no active admin exists yet. Once an admin exists this step does nothing,
-   so it is safe on every boot.
+2. **Reconciles the admin login** with the `ADMIN_NAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`
+   environment variables. If no admin exists it creates one. If the admin exists but its password
+   differs from `ADMIN_PASSWORD`, it resets the password and logs that it did — so **changing
+   `ADMIN_PASSWORD` in the host dashboard and redeploying is how you reset a forgotten admin
+   password**. If `ADMIN_PASSWORD` is not set, stored passwords are never touched.
 3. Starts the web server.
 
 ## Stack
