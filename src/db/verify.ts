@@ -57,7 +57,14 @@ export async function verifySchema(): Promise<void> {
     throw new Error('[verify] unique constraint on person.phone is missing');
   }
 
+  const { rows: cqUnique } = await pool.query(
+    `SELECT 1 FROM pg_constraint WHERE conname = 'campaign_question_unique_pair'`
+  );
+  if (cqUnique.length === 0) {
+    throw new Error('[verify] campaign_question unique pair constraint is missing');
+  }
+
   console.log(
-    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique`
+    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique`
   );
 }

@@ -1,5 +1,7 @@
-# Recruitment Operations Tool — Product Requirements Document
+# HR Pulse — Product Requirements Document
 
+**Product name:** HR Pulse
+**Full name in page titles and headers:** Brand Catapult — HR Pulse
 **Version:** 1.0 (v1 scope)
 **Owner:** Talent Acquisition
 **Status:** Approved for build
@@ -411,9 +413,19 @@ other
 
 **R4. Interview date and feedback entry date are always separate fields.** Everywhere. No exceptions.
 
-**R5. Mobile-first for the public apply page, desktop-first for everything internal.** The apply page must complete in under two minutes on a phone.
+**R5. Configuration that gets answered or scored must be snapshotted at the point of answer.** Campaign configuration is editable, and editing it must never retroactively change the meaning of data already recorded against it. Wherever a campaign-configured item is answered or scored, the item itself is stored alongside the response, and the response is always read from that stored copy — never by joining back to the live configuration. This applies to:
 
-**R6. No feature may add a step to a department manager's day.** They are not users of this system in v1.
+- `application.question_answers` — stores each question's text, type, options, required and knockout flags as they were at submission
+- `screen.qualifier_answers` — stores each screening qualifier's text as it was when the call happened
+- `round.scores` — stores each feedback dimension's label as it was when the interview was scored
+
+In every case, reading must go through a single helper that only ever reads the stored copy. Configuration is never hard-deleted, only deactivated (see R3), so a referenced item can never vanish.
+
+**R6. Never lose an application to a malformed URL.** The public apply page must render for any valid campaign slug regardless of what follows it. An absent, unrecognised or corrupted source segment resolves to `other` and the application is accepted. Source accuracy is a reporting nicety; a lost candidate is not recoverable.
+
+**R7. Mobile-first for the public apply page, desktop-first for everything internal.** The apply page must complete in under two minutes on a phone.
+
+**R8. No feature may add a step to a department manager's day.** They are not users of this system in v1.
 
 ---
 
@@ -745,11 +757,12 @@ Read alongside M0. Everything here should be settled before the first line of ap
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Development | Cursor | This document is the reference context |
+| Code editing | Cursor, on the developer's own machine | Editing only. No runtime installed locally. |
+| Development runtime | Render, built from GitHub `dev` | The only place code is executed during development. No local runtime. |
 | Repository | GitHub | Single repo, `main` and `dev` branches |
 | Database | Neon (Postgres) | External to the app host by design — see §13.3 |
 | File storage | Cloudinary | Resumes, portfolio uploads, assignment submissions |
-| Hosting (development) | Render, connected to GitHub `dev` | Free tier is acceptable here |
+| Hosting (development) | Render, connected to GitHub `dev` | Free tier is acceptable here. Doubles as the development runtime. |
 | Hosting (production) | Hostinger Cloud, connected to GitHub `main` | Node.js app deploy from GitHub |
 | Domain | Hostinger | See §13.6 |
 
@@ -762,10 +775,16 @@ Two environments, two GitHub branches, two Neon branches.
 | Environment | Git branch | Host | Neon branch | Data |
 |---|---|---|---|---|
 | Development | `dev` | Render | `dev` | Seed and test data only |
-| Production | `main` | Hostinger Cloud | `main` | Real candidate data |
+| Production | `main` | Hostinger Cloud | `production` | Real candidate data |
 
 **Rules:**
-- Migrations run against the Neon `dev` branch first, always. No schema change reaches `main` without having run on `dev`.
+- **There is no terminal, anywhere, at any point.** Node is not installed on the developer's machine and will not be. Code is pushed to GitHub and built by the host. No instruction, README step or troubleshooting note may require running a command.
+- Consequently: **database migrations run automatically on application startup.** The app applies any pending migration files, skips those already applied, and logs what ran. This must be safe to execute on every boot.
+- Consequently: **the first Admin user is created on startup** from `ADMIN_NAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables, only if no admin already exists. Also safe on every boot.
+- Environment variables are set in the host's dashboard. `.env` exists only as a local reference file and is never read by a deployed environment.
+- Neon's default branch is displayed as `production` in the web console and as `main` in Neon's API, CLI and documentation. These are the same branch. This document uses `production` to match what is visible in the console.
+- The `production` branch must be set to protected once the project is on a paid Neon plan, which is required before launch in any case (see §13.3). Protection prevents accidental deletion or reset, and causes Neon to issue child branches their own separate credentials, so development connections are physically isolated from production data. Until then, isolation is maintained by never storing the production connection string outside the production host's environment variables.
+- Migrations run against the Neon `dev` branch first, always. No schema change reaches `production` without having run on `dev`.
 - The `dev` environment must never be pointed at the production Neon branch, not even temporarily for debugging. Candidate PII does not enter a development environment.
 - Render's free tier spins a service down after roughly 15 minutes of inactivity, with a cold start of up to a minute on the next request. This is acceptable for development and unacceptable for production, which is why production is not on it.
 
@@ -776,7 +795,8 @@ Neon holds all relational data per §5.
 - **Region:** select the Neon region geographically nearest the user base rather than accepting the default. This affects apply-page responsiveness and is the simpler answer to any question about where candidate data is stored.
 - **Connection:** pooled connection string, supplied via environment variable. Never committed to the repository.
 - **Branching:** Neon database branches are used for environment separation as described in §13.2, not for feature work.
-- **Backups:** confirm point-in-time restore is enabled on the production branch before launch. The candidate database is the asset this entire project exists to build; it is the one thing that cannot be rebuilt.
+- **Plan:** the Neon free plan has no scheduled backups, a six-hour restore history, and no protected branches. It is adequate for development only. The production project must be on a paid plan before the first real application is received.
+- **Backups:** confirm scheduled backups and point-in-time restore are enabled on the production branch before launch. The candidate database is the asset this entire project exists to build; it is the one thing that cannot be rebuilt.
 - Keeping the database on Neon rather than on the app host is deliberate. It is what makes the Render-to-Hostinger production move a configuration change rather than a migration.
 
 ### 13.4 File storage — Cloudinary
@@ -786,6 +806,7 @@ Uploaded files are candidate PII: resumes contain names, phone numbers, addresse
 **Upload configuration**
 - Upload with `resource_type: raw` and `type: authenticated`. The authenticated delivery type is part of the URL structure, so an asset uploaded this way cannot later be exposed by a settings change.
 - Uploads are signed server-side. No unsigned upload presets.
+- **All uploads must be stored under a Cloudinary folder named `recruitment-tool/`.** The Cloudinary account is shared with another unrelated project; this prefix keeps candidate documents cleanly separated within it.
 - Store the Cloudinary **`public_id`** in Postgres. **Never store the full delivery URL.** Signed URLs expire; storing the ID means access can be regenerated, delivery settings can change, and the storage provider can be replaced without a data migration.
 
 **Delivery**
@@ -809,9 +830,20 @@ CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
 SESSION_SECRET
 APP_BASE_URL
+ADMIN_NAME
+ADMIN_EMAIL
+ADMIN_PASSWORD
 ```
 
+The three `ADMIN_*` values are read only on startup, and only when no admin user exists. They may be removed from the environment once the first admin account has been created.
+
 A `.env.example` file listing keys with empty values is committed. A `.env` file is never committed, and `.gitignore` must cover it from the first commit.
+
+### 13.5a Product naming
+
+The product is **HR Pulse**. Where the full name is appropriate — browser page titles, the login screen, the top-left of the application shell, printed or exported output — use **Brand Catapult — HR Pulse**. In running interface copy, "HR Pulse" alone is correct.
+
+This name appears in the UI only. It is not used in code identifiers, database names, file paths, or the repository name, all of which stay as they are.
 
 ### 13.6 Domains and deployment path
 
@@ -819,7 +851,7 @@ A `.env.example` file listing keys with empty values is committed. A `.env` file
 - **Internal tool:** a separate subdomain, e.g. `hire.<domain>`.
 - Both are served by the same application via different route groups. The separation is at the domain level for presentation and future flexibility, not at the codebase level.
 
-**Production cutover:** connect the GitHub `main` branch to Hostinger Cloud, set the environment variables per §13.5, point the Neon connection string at the `main` database branch, and configure DNS. Because no state lives on the application server, this is a deployment and DNS exercise, not a data migration. Render remains connected to `dev` afterwards and continues to serve as the development environment.
+**Production cutover:** connect the GitHub `main` branch to Hostinger Cloud, set the environment variables per §13.5, point the Neon connection string at the `production` database branch, and configure DNS. Because no state lives on the application server, this is a deployment and DNS exercise, not a data migration. Render remains connected to `dev` afterwards and continues to serve as the development environment.
 
 ### 13.7 Build sequence note
 

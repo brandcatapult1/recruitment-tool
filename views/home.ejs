@@ -2,9 +2,11 @@
 <div class="card">
   <h1>Home</h1>
   <p>Signed in as <strong><%= user.name %></strong> (<%= user.role %>).</p>
-  <p class="muted">M0 foundation is in place: schema, auth, roles, staff management, event log.
-    Campaigns, the apply page, the candidate repository and the pipeline board arrive in M1&ndash;M4.</p>
+  <p class="muted">M0 foundation and M1 campaign setup are in place. The public apply page,
+    candidate repository and pipeline board arrive in M2&ndash;M4.</p>
   <ul>
+    <li><a href="/campaigns">Campaigns</a></li>
+    <li><a href="/questions">Question bank</a></li>
     <% if (user.role === 'admin') { %><li><a href="/staff">Manage staff</a></li><% } %>
     <% if (user.role === 'partner') { %><li><a href="/leadership">Leadership Overview</a></li><% } %>
   </ul>

@@ -8,6 +8,8 @@ import { sessionMiddleware } from './auth/session';
 import { authRouter } from './routes/auth';
 import { staffRouter } from './routes/staff';
 import { homeRouter } from './routes/home';
+import { questionsRouter } from './routes/questions';
+import { campaignsRouter } from './routes/campaigns';
 import { sessionUser } from './auth/middleware';
 
 const app = express();
@@ -24,6 +26,8 @@ app.use(sessionMiddleware);
 app.use(authRouter);
 app.use(homeRouter);
 app.use('/staff', staffRouter);
+app.use('/questions', questionsRouter);
+app.use('/campaigns', campaignsRouter);
 
 app.use((req, res) => {
   res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });

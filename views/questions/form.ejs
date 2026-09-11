@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+<%
+  const optionsText = question && Array.isArray(question.options)
+    ? question.options.join('\n')
+    : (question && question.options ? String(question.options) : '');
+  const currentType = question ? question.type : '';
+%>
+<div class="card narrow wide">
+  <h1><%= title %></h1>
+  <% if (usage && (usage.campaigns > 0 || usage.recordedAnswers > 0)) { %>
+    <p class="notice">Used on <%= usage.campaigns %> campaign<%= usage.campaigns === 1 ? '' : 's' %>
+      and recorded in <%= usage.recordedAnswers %> application<%= usage.recordedAnswers === 1 ? '' : 's' %>.
+      Edits apply to <strong>future</strong> applications only. Answers already submitted keep the
+      original wording.</p>
+  <% } %>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post">
+    <label>Question text
+      <input type="text" name="text" required value="<%= question ? question.text : '' %>">
+    </label>
+    <label>Type
+      <select name="type" required>
+        <% for (const t of types) { %>
+          <option value="<%= t %>" <%= currentType === t ? 'selected' : '' %>><%= t %></option>
+        <% } %>
+      </select>
+    </label>
+    <label>Options <span class="muted">(one per line; required for select and multi_select)</span>
+      <textarea name="options" rows="4"><%= optionsText %></textarea>
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="primary">Save</button>
+      <a href="/questions">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>
