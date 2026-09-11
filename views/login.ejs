@@ -1,0 +1,15 @@
+<%- include('partials/header') %>
+<div class="card narrow">
+  <h1>Sign in</h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/login">
+    <label>Email
+      <input type="email" name="email" required autofocus autocomplete="username">
+    </label>
+    <label>Password
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit" class="primary">Sign in</button>
+  </form>
+</div>
+<%- include('partials/footer') %>

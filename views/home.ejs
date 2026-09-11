@@ -1,0 +1,12 @@
+<%- include('partials/header') %>
+<div class="card">
+  <h1>Home</h1>
+  <p>Signed in as <strong><%= user.name %></strong> (<%= user.role %>).</p>
+  <p class="muted">M0 foundation is in place: schema, auth, roles, staff management, event log.
+    Campaigns, the apply page, the candidate repository and the pipeline board arrive in M1&ndash;M4.</p>
+  <ul>
+    <% if (user.role === 'admin') { %><li><a href="/staff">Manage staff</a></li><% } %>
+    <% if (user.role === 'partner') { %><li><a href="/leadership">Leadership Overview</a></li><% } %>
+  </ul>
+</div>
+<%- include('partials/footer') %>

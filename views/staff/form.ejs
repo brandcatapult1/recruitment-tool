@@ -1,0 +1,32 @@
+<%- include('../partials/header') %>
+<div class="card narrow">
+  <h1><%= title %></h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post">
+    <label>Name
+      <input type="text" name="name" required value="<%= member ? member.name : '' %>">
+    </label>
+    <label>Department
+      <input type="text" name="department" value="<%= member && member.department ? member.department : '' %>">
+    </label>
+    <label>Role
+      <select name="system_role" required>
+        <option value="" disabled <%= member ? '' : 'selected' %>>Select a role</option>
+        <% for (const role of roles) { %>
+          <option value="<%= role %>" <%= member && member.system_role === role ? 'selected' : '' %>><%= role %></option>
+        <% } %>
+      </select>
+    </label>
+    <label>Email <span class="muted">(required for admin, recruiter, partner; login identity)</span>
+      <input type="email" name="email" value="<%= member && member.email ? member.email : '' %>">
+    </label>
+    <label>Password <span class="muted">(<%= member ? 'leave blank to keep current password' : 'for login roles only' %>)</span>
+      <input type="password" name="password" autocomplete="new-password">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="primary">Save</button>
+      <a href="/staff">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

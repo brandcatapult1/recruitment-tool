@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Recruitment</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">Recruitment</a>
+    <% if (user) { %>
+      <nav class="nav">
+        <a href="/">Home</a>
+        <% if (user.role === 'admin') { %><a href="/staff">Staff</a><% } %>
+        <% if (user.role === 'partner') { %><a href="/leadership">Leadership Overview</a><% } %>
+      </nav>
+      <div class="session">
+        <span class="who"><%= user.name %> · <%= user.role %></span>
+        <form method="post" action="/logout" class="inline"><button type="submit" class="link-button">Sign out</button></form>
+      </div>
+    <% } %>
+  </div>
+</header>
+<main class="content">

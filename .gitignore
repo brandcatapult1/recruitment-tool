@@ -1,0 +1,14 @@
+# Secrets - never commit (PRD §13.5)
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+node_modules/
+dist/
+
+# Local tooling
+.tools/
+
+# OS noise
+.DS_Store
