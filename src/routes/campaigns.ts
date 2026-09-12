@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { requireLogin, sessionUser } from '../auth/middleware';
-import { CAMPAIGN_STATUSES } from '../constants';
+import {
+  CAMPAIGN_STATUSES,
+  DEFAULT_EXPECTED_TIMELINE,
+  DEFAULT_PROCESS_DESCRIPTION,
+  FREE_TEXT_QUESTION_TYPES,
+  MAX_CAMPAIGN_APPLY_QUESTIONS,
+  MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
+  PIPELINE_STAGES,
+} from '../constants';
 import { parseCampaignForm, parseQuestionBuilderForm } from './forms';
 import {
   listCampaigns,
@@ -11,17 +19,26 @@ import {
   replaceCampaignQuestions,
   slugify,
 } from '../campaigns/repository';
+import { listActiveDepartments, getDepartment, listDepartmentQuestions } from '../departments/repository';
 import { listQuestions } from '../questions/repository';
-import { stagesForCampaign } from '../campaigns/stages';
 import { applyUrl, sourceVariantLinks } from '../campaigns/links';
 
-/**
- * Campaign CRUD, question builder, and source variant links.
- * Reachable by every login role (§4). Staff management stays Admin-only.
- */
 export const campaignsRouter = Router();
 
 campaignsRouter.use(requireLogin);
+
+async function formLocals(req: ExpressRequest, extras: Record<string, unknown>) {
+  return {
+    statuses: CAMPAIGN_STATUSES,
+    departments: await listActiveDepartments(),
+    defaultProcess: DEFAULT_PROCESS_DESCRIPTION,
+    defaultTimeline: DEFAULT_EXPECTED_TIMELINE,
+    user: sessionUser(req),
+    ...extras,
+  };
+}
+
+type ExpressRequest = import('express').Request;
 
 campaignsRouter.get('/', async (req, res, next) => {
   try {
@@ -32,32 +49,46 @@ campaignsRouter.get('/', async (req, res, next) => {
   }
 });
 
-campaignsRouter.get('/new', (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
-  res.render('campaigns/form', {
-    title: 'New campaign',
-    campaign: { status: 'open', positions_open: 1, opened_date: today, assignment_stage_enabled: false },
-    statuses: CAMPAIGN_STATUSES,
-    error: null,
-    user: sessionUser(req),
-  });
+campaignsRouter.get('/new', async (req, res, next) => {
+  try {
+    res.render(
+      'campaigns/form',
+      await formLocals(req, {
+        title: 'New campaign',
+        mode: 'create',
+        campaign: {
+          positions_open: 1,
+          show_salary_publicly: true,
+          process_description: DEFAULT_PROCESS_DESCRIPTION,
+          expected_timeline: DEFAULT_EXPECTED_TIMELINE,
+        },
+        error: null,
+      })
+    );
+  } catch (err) {
+    next(err);
+  }
 });
 
 campaignsRouter.post('/new', async (req, res, next) => {
   try {
-    const parsed = parseCampaignForm(req.body);
+    const parsed = parseCampaignForm(req.body, 'create');
     if ('error' in parsed) {
-      return res.status(400).render('campaigns/form', {
-        title: 'New campaign',
-        campaign: req.body,
-        statuses: CAMPAIGN_STATUSES,
-        error: parsed.error,
-        user: sessionUser(req),
-      });
+      return res.status(400).render(
+        'campaigns/form',
+        await formLocals(req, {
+          title: 'New campaign',
+          mode: 'create',
+          campaign: req.body,
+          error: parsed.error,
+        })
+      );
     }
     if (!parsed.publicSlug) parsed.publicSlug = slugify(parsed.roleTitle);
-    if (!parsed.openedDate) parsed.openedDate = new Date().toISOString().slice(0, 10);
-    const campaign = await createCampaign(parsed);
+    const campaign = await createCampaign({
+      ...parsed,
+      openedDate: new Date().toISOString().slice(0, 10),
+    });
     res.redirect(`/campaigns/${campaign.campaign_id}`);
   } catch (err) {
     next(err);
@@ -70,6 +101,10 @@ campaignsRouter.get('/:campaignId', async (req, res, next) => {
     if (!campaign) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
+    const department = await getDepartment(campaign.department_id);
+    const departmentQuestions = department
+      ? await listDepartmentQuestions(department.department_id)
+      : [];
     const attached = await listCampaignQuestions(campaign.campaign_id);
     const attachedIds = new Set(attached.map((q) => q.question_id));
     const bank = await listQuestions(true);
@@ -77,11 +112,16 @@ campaignsRouter.get('/:campaignId', async (req, res, next) => {
     res.render('campaigns/show', {
       title: campaign.role_title,
       campaign,
+      department,
+      departmentQuestions,
       attached,
       selectable,
-      stages: stagesForCampaign(campaign),
+      stages: PIPELINE_STAGES,
       applyUrl: applyUrl(campaign.public_slug),
       sourceLinks: sourceVariantLinks(campaign.public_slug),
+      freeTextTypes: FREE_TEXT_QUESTION_TYPES,
+      maxCampaignQuestions: MAX_CAMPAIGN_APPLY_QUESTIONS,
+      maxFreeText: MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
       user: sessionUser(req),
     });
   } catch (err) {
@@ -95,13 +135,15 @@ campaignsRouter.get('/:campaignId/edit', async (req, res, next) => {
     if (!campaign) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    res.render('campaigns/form', {
-      title: `Edit ${campaign.role_title}`,
-      campaign,
-      statuses: CAMPAIGN_STATUSES,
-      error: null,
-      user: sessionUser(req),
-    });
+    res.render(
+      'campaigns/form',
+      await formLocals(req, {
+        title: `Edit ${campaign.role_title}`,
+        mode: 'edit',
+        campaign,
+        error: null,
+      })
+    );
   } catch (err) {
     next(err);
   }
@@ -113,18 +155,24 @@ campaignsRouter.post('/:campaignId/edit', async (req, res, next) => {
     if (!campaign) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    const parsed = parseCampaignForm(req.body);
+    const parsed = parseCampaignForm(req.body, 'edit');
     if ('error' in parsed) {
-      return res.status(400).render('campaigns/form', {
-        title: `Edit ${campaign.role_title}`,
-        campaign: { ...campaign, ...req.body },
-        statuses: CAMPAIGN_STATUSES,
-        error: parsed.error,
-        user: sessionUser(req),
-      });
+      return res.status(400).render(
+        'campaigns/form',
+        await formLocals(req, {
+          title: `Edit ${campaign.role_title}`,
+          mode: 'edit',
+          campaign: { ...campaign, ...req.body },
+          error: parsed.error,
+        })
+      );
     }
     if (!parsed.publicSlug) parsed.publicSlug = slugify(parsed.roleTitle);
-    await updateCampaign(campaign.campaign_id, parsed);
+    await updateCampaign(
+      campaign.campaign_id,
+      { ...parsed, openedDate: campaign.opened_date },
+      campaign.status
+    );
     res.redirect(`/campaigns/${campaign.campaign_id}`);
   } catch (err) {
     next(err);

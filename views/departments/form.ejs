@@ -1,0 +1,43 @@
+<%- include('../partials/header') %>
+<%
+  function qualifier(n) {
+    if (department && Array.isArray(department.screening_qualifiers)) {
+      return department.screening_qualifiers[n - 1] || '';
+    }
+    return department && department['qualifier_' + n] ? department['qualifier_' + n] : '';
+  }
+  function dimension(n) {
+    if (department && Array.isArray(department.feedback_dimensions)) {
+      return department.feedback_dimensions[n - 1] || '';
+    }
+    return department && department['dimension_' + n] ? department['dimension_' + n] : '';
+  }
+%>
+<div class="card">
+  <h1><%= title %></h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post">
+    <label>Name
+      <input type="text" name="name" required value="<%= department ? department.name : '' %>">
+    </label>
+    <fieldset>
+      <legend>Screening qualifiers <span class="muted">(max 2 — asked on the telephonic screen)</span></legend>
+      <label>Qualifier 1 <input type="text" name="qualifier_1" value="<%= qualifier(1) %>"></label>
+      <label>Qualifier 2 <input type="text" name="qualifier_2" value="<%= qualifier(2) %>"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Feedback dimensions <span class="muted">(max 4 — scored 1–5 on interview rounds)</span></legend>
+      <div class="grid-2">
+        <label>Dimension 1 <input type="text" name="dimension_1" value="<%= dimension(1) %>"></label>
+        <label>Dimension 2 <input type="text" name="dimension_2" value="<%= dimension(2) %>"></label>
+        <label>Dimension 3 <input type="text" name="dimension_3" value="<%= dimension(3) %>"></label>
+        <label>Dimension 4 <input type="text" name="dimension_4" value="<%= dimension(4) %>"></label>
+      </div>
+    </fieldset>
+    <div class="form-actions">
+      <button type="submit" class="primary">Save</button>
+      <a href="/departments">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

@@ -10,6 +10,9 @@ import { staffRouter } from './routes/staff';
 import { homeRouter } from './routes/home';
 import { questionsRouter } from './routes/questions';
 import { campaignsRouter } from './routes/campaigns';
+import { departmentsRouter } from './routes/departments';
+import { applyRouter } from './routes/apply';
+import { filesRouter } from './routes/files';
 import { sessionUser } from './auth/middleware';
 
 const app = express();
@@ -28,6 +31,9 @@ app.use(homeRouter);
 app.use('/staff', staffRouter);
 app.use('/questions', questionsRouter);
 app.use('/campaigns', campaignsRouter);
+app.use('/departments', departmentsRouter);
+app.use(applyRouter);
+app.use(filesRouter);
 
 app.use((req, res) => {
   res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });

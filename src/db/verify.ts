@@ -23,7 +23,11 @@ const EXPECTED_TABLES = [
   'event',
   // Supporting tables
   'question',
+  'department',
+  'department_question',
   'session',
+  'apply_submission',
+  'honeypot_rejection',
   '_migrations',
 ];
 

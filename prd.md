@@ -131,17 +131,20 @@ The permanent asset. Nothing role-specific or campaign-specific lives here.
 |---|---|---|
 | `campaign_id` | uuid, PK | |
 | `role_title` | string, required | |
-| `department` | string, required | |
+| `department_id` | uuid, FK → department, required | Dropdown only. Never free text. Qualifiers and feedback dimensions are inherited from here. |
+| `job_description` | text, required | The role description shown publicly on the apply page. |
 | `positions_open` | integer, default 1 | |
-| `salary_band_min` | integer, nullable | Displayed publicly on apply page |
-| `salary_band_max` | integer, nullable | Displayed publicly on apply page |
+| `salary_band_min` | integer, nullable | |
+| `salary_band_max` | integer, nullable | |
+| `show_salary_publicly` | boolean, default **true** | Controls whether the band appears on the apply page. Defaults on — publishing the band reduces drop-off and avoids screening people outside range — but some roles cannot publish. |
 | `status` | enum | `open` / `on_hold` / `closed` |
 | `opened_date` | date | |
 | `closed_date` | date, nullable | |
 | `public_slug` | string, unique | Drives the public URL |
-| `screening_qualifiers` | array of string, max 2 | Role-specific questions the recruiter must answer during the telephonic screen |
-| `feedback_dimensions` | array of string, max 4 | Scored dimensions for interview rounds in this campaign. Configurable per campaign — "craft" is meaningless for a finance role. |
-| `assignment_stage_enabled` | boolean, default false | Controls whether the Assignment stage appears for this campaign |
+| `process_description` | text, nullable | Shown publicly on the apply page — what the hiring process involves, in plain language. Pre-filled with a default, editable. Not derived from stage names; internal stage labels are jargon. |
+| `expected_timeline` | string, nullable | Shown publicly on the apply page, e.g. "You'll hear from us within 3 working days." Pre-filled with a default, editable. |
+
+**Campaign creation rules.** `status` is always `open` at creation and is not on the create form. `closed_date` is set automatically when status changes to `closed`; it is never typed by hand. Screening qualifiers and feedback dimensions do not appear anywhere on the campaign form — they belong to the department (§5.10) and are inherited.
 
 ---
 
@@ -172,9 +175,9 @@ Where stage and outcome live. One person has many applications.
 | `source` | enum | Derived from source variant link used |
 | `stage` | enum | See §6.1 |
 | `stage_entered_date` | timestamp | Updated on every stage change. Drives aging alerts and stage-duration metrics. |
-| `current_comp` | integer, nullable | Captured at screen |
-| `expected_comp` | integer, nullable | **Captured at screen, not at offer.** Critical. |
-| `notice_period_days` | integer, nullable | Captured at screen |
+| `current_comp` | integer, nullable | **Captured on the apply page**, required, with a "not currently employed" option for freshers and those between jobs |
+| `expected_comp` | integer, nullable | **Captured at screen, not on the apply page and not at offer.** Asking expectation publicly anchors the negotiation; asking it in conversation does not. The gap between this and `offer_amount` remains the leading indicator of wasted process. |
+| `notice_period_days` | integer, nullable | Earliest joining date captured on the apply page; refined at screen |
 | `outcome_reason` | enum, nullable | Required when stage is terminal. See §6.2 |
 | `offer_amount` | integer, nullable | |
 | `offer_date` | date, nullable | |
@@ -265,6 +268,42 @@ Never edited, never deleted. This is the outreach history, the audit trail, and 
 
 ---
 
+### 5.10 `department` — departments, and the config they own
+
+Departments are a maintained list, not free text. Each department owns the screening qualifiers and feedback dimensions used by every campaign within it, because these are consistent by discipline rather than by individual role.
+
+| Field | Type | Notes |
+|---|---|---|
+| `department_id` | uuid, PK | |
+| `name` | string, unique | |
+| `screening_qualifiers` | array of string, max 2 | The role-specific questions a recruiter must answer on the telephonic screen for any role in this department |
+| `apply_questions` | up to 3, referencing the question bank | Discipline-specific questions asked on the apply page for every campaign in this department |
+| `feedback_dimensions` | array of string, max 4 | The dimensions scored 1–5 on interview rounds for any role in this department |
+| `active` | boolean, default true | Deactivate rather than delete |
+
+Admin-maintained only. Recruiters select a department when creating a campaign and never see or edit this configuration.
+
+**Seed list:**
+
+```
+Brand Managers          (the agency's term for account management)
+Strategy & Planning
+Creative & Copy
+Design
+Video Editing
+Performance Marketing
+Technology & Web
+Accounts & Finance
+Human Resources
+Operations
+Branding & Projects
+Photography & Videography
+```
+
+**Inheritance rule.** A campaign inherits its department's qualifiers and dimensions at the point of use — the screen form reads the department's qualifiers, the round form reads its dimensions. Per-campaign override is deliberately not supported in v1. If a role needs different questions, the department's configuration is what changes. R5 still applies: both are snapshotted at the point they are answered or scored, so editing a department never rewrites past screens or past interview scores.
+
+---
+
 ### 5.9 `question` — the question bank
 
 | Field | Type | Notes |
@@ -289,7 +328,7 @@ Ordered. Stages are **skippable** — one list serves every role.
 applied          # unreviewed, by definition — a candidate never remains here after review
 shortlisted      # reviewed, worth calling, not yet called — the call queue
 screened         # telephonic screen completed, advancing
-assignment       # only if campaign.assignment_stage_enabled
+assignment       # used per candidate, on a need basis — not configured per campaign
 interviewing     # one or more rounds scheduled or completed
 offered          # offer extended
 offer_accepted   # accepted, in notice period, not yet joined
@@ -307,7 +346,7 @@ went_silent
 **Rules:**
 - `applied` means *unreviewed*. Review moves the record to `shortlisted` or `rejected`. Nothing stays in `applied` after a recruiter has looked at it. This makes the "aged over 48 hours" metric automatic rather than something anyone maintains.
 - `shortlisted` is where candidates quietly rot. It carries its own aging alert.
-- `assignment` is skipped entirely for campaigns where it is disabled. Finance and HR roles pass from `screened` to `interviewing`.
+- `assignment` is available on every campaign and used per candidate, on a need basis. It is not configured at campaign level. Most candidates in most roles will skip it, passing from `screened` to `interviewing` — that is normal, and no setting controls it.
 - `joined` is deliberately named for the unambiguous event. "Hired" can mean offer signed or seat filled; one of our outcome reasons is literally "accepted then didn't join," so the stage must mean the latter.
 - `offer_accepted` exists as its own stage because the notice period is a real drop-off window. If `offered` and `joined` sit adjacent, the four-week gap is invisible and nobody owns the candidate through it.
 
@@ -465,20 +504,22 @@ Build in the order listed. Each module states its dependencies and can be develo
 **Purpose:** define role openings and the questions their apply page asks.
 
 **Scope**
+- Department CRUD (**Admin only**): name, screening qualifiers, feedback dimensions, active flag. Seeded with the list in §5.10.
 - Question bank CRUD (Admin and Recruiter): text, type, options, active flag.
-- Campaign CRUD: all fields per §5.2.
-- Campaign question builder: select from bank, set order, required flag, knockout flag.
-- Campaign feedback dimensions: up to four, free text labels, set at campaign creation.
-- Campaign screening qualifiers: up to two.
+- Campaign CRUD: all fields per §5.2. The create form asks only for role title, department (dropdown), positions open, salary band with its public-visibility checkbox, job description, process description, expected timeline and slug. Nothing else.
+- Campaign question builder: select from bank, order, required and knockout flags. Lives on the campaign page after creation, not on the create form.
+- The campaign page shows the department's inherited qualifiers and dimensions read-only, with a link for Admins to edit them at department level.
 - Source variant link generation: one public URL per source in §6.7, all resolving to the same apply page but stamping `source` on submission.
 
 **Acceptance criteria**
 - A campaign can be created in under three minutes by someone who has done it before.
 - Editing a question in the bank does not alter answers already recorded against past applications.
 - Each source variant produces a distinct URL and correctly stamps the source on the resulting application.
-- Setting `assignment_stage_enabled` to false removes the Assignment stage from that campaign's pipeline board entirely.
+- Department is selectable only from the maintained list. There is no free-text path to creating a department, by form or by API.
+- A campaign cannot be saved without a job description.
+- `status` and `closed_date` do not appear on the create form.
 
-**Out of scope:** job description authoring, publishing to external boards, approval flows.
+**Out of scope:** rich-text or templated JD authoring (a plain text field is in scope and required), publishing to external job boards, approval flows, per-campaign overrides of department qualifiers or dimensions.
 
 ---
 
@@ -488,10 +529,46 @@ Build in the order listed. Each module states its dependencies and can be develo
 **Purpose:** capture applications. Universal layout, campaign-specific questions.
 
 **Scope**
-- Single universal page template. Layout, styling, and structure are identical for every campaign — only the questions, role title, and salary band change.
-- Universal fields on every application: full name, phone, email, city, portfolio/link, plus the campaign's questions.
-- Public display of: role title, department, salary band, the process steps, and expected timeline. This is a drop-off reduction measure, not decoration.
-- Consent checkbox with explicit purpose statement. Writes `consent_date`.
+- Single universal page template. Layout, styling, and structure are identical for every campaign — only the content and questions change.
+- The job description is displayed prominently above the form. It sells the role before asking anything.
+
+**Question structure — three tiers, hard-capped at 16 visible questions.**
+
+*Tier 1 — universal.* Identical on every application, built in, not configurable:
+
+| Field | Required | Notes |
+|---|---|---|
+| Full name | yes | |
+| Phone | yes | Normalised; the dedupe key |
+| Email | yes | |
+| Current city | yes | |
+| Current CTC | yes | Must offer a "not currently employed" option. Freshers and those between jobs have no figure, and a hard-required number here is a wall in front of exactly the junior talent the agency wants. |
+| Earliest joining date | yes | |
+| CV | yes | File upload |
+| Work links or portfolio | no | One field accepting either pasted links (portfolio, LinkedIn, website — multiple allowed) **or** a file upload. Candidate chooses; neither is forced. Helper text must ask for links that do not expire and warn against transfer-service links that lapse. |
+| Years of experience **in this discipline** | yes | Number. Deliberately not total years worked — someone with eight years of work and eighteen months in performance marketing is an eighteen-month performance marketer. This is the first filter applied to every profile and the field that makes every other answer interpretable: "managed ₹20 lakh monthly spend" means something very different at two years than at eight. |
+| Why do you want this role / what excites you about it | yes | Free text, ~500 character cap with a live counter. Universal because it applies to every role. Its value is the effort signal and orientation, not the content. |
+
+*Tier 2 — department.* Up to 3, inherited from `department.apply_questions` (§5.10). **Structured types only — multi-select, single-select or number. Free text is not permitted at this tier.** This is where the database's searchability is created: tools used, platforms managed, budget or spend bands, client categories, experience bands. Consistency across every campaign in a discipline is what makes applicants comparable years later.
+
+*Tier 3 — campaign.* Up to 3, from the question bank, genuinely specific to this role. **At most 2 may be free text**, each capped at ~500 characters with a live counter.
+
+**Free-text question design — binding rule.** Any question with a knowable answer is now answered by a general-purpose AI in seconds, so such questions measure access to a chatbot rather than ability. Every free-text question must be anchored in the candidate's own experience, opinion or choices.
+
+- Not permitted: general-knowledge or "explain the concept" questions ("What is X brand's architecture?", "When does brand purpose become jargon?")
+- Permitted: questions only this candidate can answer ("Describe a brief you got wrong and what you missed", "Which two brands do you think are overrated, and why?")
+
+Questions requiring genuine analytical reasoning — case studies, positioning exercises, strategic problems — are valuable but belong on the telephonic screen, where reasoning is heard live and can be probed, or at the assignment stage. They must never appear on the apply page.
+
+**The binding constraint on free text is recruiter reading time, not candidate effort.** At the expected volume, two free-text answers per application is well over a thousand paragraphs a month arriving on the team. Anything longer than ~500 characters will not be read, which makes it cost the candidate effort and return nothing.
+
+**The 16-question cap is enforced in the form builder**, not advisory. Attempting to add a seventeenth is refused with an explanation, as is a third free-text question at campaign level or any free-text question at department level. Ten universal plus three department plus three campaign lands exactly on the cap. Without a hard stop this creeps back toward twenty fields within a year, and length is the single largest cause of drop-off.
+
+**Never ask on the apply page:** expected compensation (§5.4), photographs of the candidate (a barrier at the top of the funnel, and it invites bias into screening before any work has been evaluated), or file-naming conventions the candidate must follow — uploads are renamed automatically on ingest per §13.4.
+- Public display of: role title, department, the job description, salary band (when `show_salary_publicly` is true), the process steps, and expected timeline. This is a drop-off reduction measure, not decoration.
+- A short closing note above the Submit button, restating what happens next in plain, human language.
+- **The apply page exists only for campaigns with status `open`.** A `closed` or `on_hold` campaign's URL returns 404 — no role title, no description, no "not accepting applications" message. Nothing is exposed about a role that is not live.
+- Consent is presented as a plain-language notice immediately above the Submit button, not as a separate checkbox field. Submitting constitutes consent, and the notice must be visible and adjacent to the button — India's DPDP Act requires a clear affirmative action, which a notice buried in a footer does not satisfy. Submission writes `consent_date`.
 - Phone normalisation to E.164 on submit.
 - Dedupe on submit: phone match attaches the application to the existing `person`; no duplicate person record is created.
 - Confirmation screen on submission.
@@ -499,7 +576,10 @@ Build in the order listed. Each module states its dependencies and can be develo
 
 **Acceptance criteria**
 - Completable in under two minutes on a phone with a standard question set.
-- Resume upload is optional; portfolio URL is available for every campaign.
+- A CV upload is required. The work links / portfolio field is optional and accepts either pasted links or a file — the candidate chooses.
+- No campaign can present more than 16 visible questions; the form builder refuses the seventeenth.
+- Department questions cannot be free text. Campaign questions permit at most two free text, each capped at ~500 characters.
+- Current CTC can be completed by someone who is not currently employed.
 - Submitting with a phone number already in the database creates a new `application` against the existing `person`, and does not create a second `person`.
 - Knockout answers set a flag visible to the recruiter but never change the stage or reject the application.
 - Page is fully usable at 360px width.
@@ -545,7 +625,6 @@ Build in the order listed. Each module states its dependencies and can be develo
   - Applications in `shortlisted` for more than 72 working hours
   - Any application whose `stage_entered_date` exceeds the stage threshold
 - Owner reassignment dropdown, writing an `owner_changed` event.
-- Assignment stage hidden when `assignment_stage_enabled` is false.
 
 **Acceptance criteria**
 - A candidate cannot reach a terminal stage without a structured outcome reason.
@@ -806,7 +885,9 @@ Uploaded files are candidate PII: resumes contain names, phone numbers, addresse
 **Upload configuration**
 - Upload with `resource_type: raw` and `type: authenticated`. The authenticated delivery type is part of the URL structure, so an asset uploaded this way cannot later be exposed by a settings change.
 - Uploads are signed server-side. No unsigned upload presets.
-- **All uploads must be stored under a Cloudinary folder named `recruitment-tool/`.** The Cloudinary account is shared with another unrelated project; this prefix keeps candidate documents cleanly separated within it.
+- **Files are renamed automatically on ingest** to a system-generated identifier. Candidates are never asked to follow a naming convention — that is the agency's filing burden, not theirs. The original filename is retained as metadata for display.
+- **All uploads are stored under an environment-scoped folder: `dev/hr-pulse/` in development, `prod/hr-pulse/` in production.** The path comes from the `CLOUDINARY_FOLDER` environment variable, never hardcoded. The Cloudinary account is shared with another project which already follows this environment-first convention. Folders are created automatically by Cloudinary on first upload — no manual setup.
+- The environment split is not cosmetic. Test CVs uploaded during development must never sit alongside real candidate documents, because these files are PII.
 - Store the Cloudinary **`public_id`** in Postgres. **Never store the full delivery URL.** Signed URLs expire; storing the ID means access can be regenerated, delivery settings can change, and the storage provider can be replaced without a data migration.
 
 **Delivery**
@@ -828,6 +909,7 @@ DATABASE_URL
 CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET
+CLOUDINARY_FOLDER
 SESSION_SECRET
 APP_BASE_URL
 ADMIN_NAME

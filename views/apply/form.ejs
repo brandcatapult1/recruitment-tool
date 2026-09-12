@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= campaign.role_title %> · Brand Catapult — HR Pulse</title>
+  <link rel="stylesheet" href="/static/apply.css">
+</head>
+<body>
+  <main class="apply">
+    <p class="eyebrow">Brand Catapult — HR Pulse</p>
+    <h1><%= campaign.role_title %></h1>
+    <p class="dept"><%= campaign.department_name %></p>
+
+    <section class="jd"><%= campaign.job_description %></section>
+
+    <% if (campaign.show_salary_publicly && (campaign.salary_band_min || campaign.salary_band_max)) { %>
+      <p class="salary">Salary band:
+        <% if (campaign.salary_band_min && campaign.salary_band_max) { %>
+          <%= campaign.salary_band_min %> – <%= campaign.salary_band_max %>
+        <% } else if (campaign.salary_band_min) { %>
+          from <%= campaign.salary_band_min %>
+        <% } else { %>
+          up to <%= campaign.salary_band_max %>
+        <% } %>
+      </p>
+    <% } %>
+
+    <% if (campaign.process_description) { %>
+      <h2>The process</h2>
+      <p><%= campaign.process_description %></p>
+    <% } %>
+    <% if (campaign.expected_timeline) { %>
+      <p class="timeline"><%= campaign.expected_timeline %></p>
+    <% } %>
+
+    <% if (error) { %><p class="error"><%= error %></p><% } %>
+
+    <form method="post" enctype="multipart/form-data" id="apply-form">
+      <input type="hidden" name="submission_id" value="<%= submissionId %>">
+      <label class="hp-field" aria-hidden="true">Website
+        <input type="text" name="website" tabindex="-1" autocomplete="off">
+      </label>
+
+      <label>Full name
+        <input type="text" name="full_name" required value="<%= values.full_name || '' %>">
+      </label>
+      <label>Phone
+        <input type="tel" name="phone" required value="<%= values.phone || '' %>">
+      </label>
+      <label>Email
+        <input type="email" name="email" required value="<%= values.email || '' %>">
+      </label>
+      <label>Current city
+        <input type="text" name="city" required value="<%= values.city || '' %>">
+      </label>
+      <label>Current CTC (annual)
+        <input type="number" name="current_comp" min="0" value="<%= values.current_comp || '' %>">
+      </label>
+      <label class="check">
+        <input type="checkbox" name="not_currently_employed" value="true" <%= values.not_currently_employed === 'true' || values.not_currently_employed === 'on' ? 'checked' : '' %>>
+        I am not currently employed
+      </label>
+      <label>Earliest joining date
+        <input type="date" name="earliest_join_date" required value="<%= values.earliest_join_date || '' %>">
+      </label>
+      <label>CV
+        <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf" required>
+      </label>
+      <label>Work links <span class="hint">Portfolio, LinkedIn, site — paste links that do not expire. Avoid WeTransfer or other transfer links that lapse.</span>
+        <textarea name="work_links" rows="3" placeholder="https://"><%= values.work_links || '' %></textarea>
+      </label>
+      <label>Or a portfolio file <span class="hint">Optional. Use this instead of links if you prefer.</span>
+        <input type="file" name="portfolio">
+      </label>
+      <label>Years of experience in this discipline
+        <input type="number" name="years_in_discipline" min="0" step="0.5" required value="<%= values.years_in_discipline || '' %>">
+        <span class="hint">Not total years worked — years in this kind of work.</span>
+      </label>
+      <label>Why do you want this role?
+        <textarea name="motivation" required maxlength="<%= charLimit %>" data-counter="motivation-count" rows="4"><%= values.motivation || '' %></textarea>
+        <span class="count" id="motivation-count">0 / <%= charLimit %></span>
+      </label>
+
+      <% const deptQs = questions.filter((q) => q.tier === 'department'); %>
+      <% const campQs = questions.filter((q) => q.tier === 'campaign'); %>
+
+      <% if (deptQs.length) { %>
+        <h2>A few specifics</h2>
+        <% for (const q of deptQs) { %>
+          <%- include('question-field', { q, values, charLimit, freeTextTypes }) %>
+        <% } %>
+      <% } %>
+
+      <% if (campQs.length) { %>
+        <h2>For this role</h2>
+        <% for (const q of campQs) { %>
+          <%- include('question-field', { q, values, charLimit, freeTextTypes }) %>
+        <% } %>
+      <% } %>
+
+      <div class="consent">
+        <p>By submitting, you agree that Brand Catapult can use these details to consider you for this role and related openings, and to contact you about them. We keep applications for 24 months.</p>
+        <p>We’ll be in touch if there’s a next step. <%= campaign.expected_timeline || '' %></p>
+      </div>
+      <button type="submit" class="submit" id="submit-btn">Submit application</button>
+    </form>
+  </main>
+  <script>
+    document.querySelectorAll('[data-counter]').forEach(function (el) {
+      var out = document.getElementById(el.getAttribute('data-counter'));
+      function tick() { if (out) out.textContent = (el.value || '').length + ' / ' + el.maxLength; }
+      el.addEventListener('input', tick); tick();
+    });
+    document.getElementById('apply-form').addEventListener('submit', function () {
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+    });
+  </script>
+</body>
+</html>

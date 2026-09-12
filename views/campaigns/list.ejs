@@ -22,7 +22,7 @@
       <% for (const c of campaigns) { %>
         <tr>
           <td><a href="/campaigns/<%= c.campaign_id %>"><%= c.role_title %></a></td>
-          <td><%= c.department %></td>
+          <td><%= c.department_name %></td>
           <td><%= c.status %></td>
           <td><%= c.opened_date || '—' %></td>
           <td><%= c.positions_open %></td>

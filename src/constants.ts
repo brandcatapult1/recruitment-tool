@@ -14,7 +14,7 @@ export const PIPELINE_STAGES = [
   'applied', // unreviewed, by definition
   'shortlisted', // reviewed, worth calling, not yet called — the call queue
   'screened', // telephonic screen completed, advancing
-  'assignment', // only if campaign.assignment_stage_enabled
+  'assignment', // used per candidate, on a need basis — not configured per campaign
   'interviewing', // one or more rounds scheduled or completed
   'offered', // offer extended
   'offer_accepted', // accepted, in notice period, not yet joined
@@ -177,3 +177,23 @@ export const QUESTION_TYPES = [
   'number',
 ] as const;
 export type QuestionType = (typeof QUESTION_TYPES)[number];
+
+/** Department apply questions: structured types only (M2). */
+export const DEPARTMENT_APPLY_QUESTION_TYPES = ['select', 'multi_select', 'number'] as const;
+export type DepartmentApplyQuestionType = (typeof DEPARTMENT_APPLY_QUESTION_TYPES)[number];
+
+export const FREE_TEXT_QUESTION_TYPES = ['short_text', 'long_text'] as const;
+
+export const MAX_DEPARTMENT_APPLY_QUESTIONS = 3;
+export const MAX_CAMPAIGN_APPLY_QUESTIONS = 3;
+export const MAX_CAMPAIGN_FREE_TEXT_QUESTIONS = 2;
+export const UNIVERSAL_APPLY_QUESTION_COUNT = 10;
+export const MAX_VISIBLE_APPLY_QUESTIONS = 16;
+export const FREE_TEXT_CHAR_LIMIT = 500;
+
+export const DEFAULT_PROCESS_DESCRIPTION =
+  'We review every application, then speak with people who look like a fit. Some roles include a short assignment. Interviews are with the hiring department.';
+export const DEFAULT_EXPECTED_TIMELINE = "You'll hear from us within 3 working days.";
+
+export const PRODUCT_NAME = 'HR Pulse';
+export const PRODUCT_FULL_NAME = 'Brand Catapult — HR Pulse';

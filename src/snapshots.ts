@@ -13,9 +13,9 @@ import { QUESTION_TYPES, type QuestionType } from './constants';
  *
  * Three places need this, one per configurable thing:
  *
- *   application.question_answers  <- campaign's question set (§5.3 / §5.9)
- *   screen.qualifier_answers      <- campaign.screening_qualifiers (§5.2)
- *   round.scores                  <- campaign.feedback_dimensions (§5.2)
+ *   application.question_answers  <- department + campaign apply questions
+ *   screen.qualifier_answers      <- department.screening_qualifiers
+ *   round.scores                  <- department.feedback_dimensions
  *
  * Two kinds of function live here and the split is the whole safety property:
  *
@@ -47,6 +47,7 @@ export interface QuestionAnswer {
   /** Tag and triage only. Never auto-rejects, never changes stage (§5.3). */
   is_knockout: boolean;
   display_order: number;
+  tier?: 'department' | 'campaign';
   value: string | string[] | number | null;
 }
 
@@ -91,30 +92,51 @@ export type QuestionValues = Record<string, string | string[] | number | null | 
  * `values` is keyed by question_id; anything absent is recorded as null so the
  * snapshot always shows the full set of questions that were on screen.
  */
+export interface LiveApplyQuestion {
+  question_id: string;
+  text: string;
+  type: QuestionType;
+  options: string[] | null;
+  is_required: boolean;
+  is_knockout: boolean;
+  display_order: number;
+  tier: 'department' | 'campaign';
+}
+
+export async function loadLiveApplyQuestions(
+  campaignId: string,
+  client?: PoolClient
+): Promise<LiveApplyQuestion[]> {
+  const runner = client ?? pool;
+  const { rows } = await runner.query<LiveApplyQuestion>(
+    `SELECT * FROM (
+        SELECT q.question_id, q.text, q.type, q.options,
+               dq.is_required, false AS is_knockout, dq.display_order,
+               'department'::text AS tier, 0 AS tier_sort
+          FROM department_question dq
+          JOIN campaign c ON c.department_id = dq.department_id
+          JOIN question q ON q.question_id = dq.question_id
+         WHERE c.campaign_id = $1
+        UNION ALL
+        SELECT q.question_id, q.text, q.type, q.options,
+               cq.is_required, cq.is_knockout, cq.display_order,
+               'campaign'::text AS tier, 1 AS tier_sort
+          FROM campaign_question cq
+          JOIN question q ON q.question_id = cq.question_id
+         WHERE cq.campaign_id = $1
+      ) qset
+      ORDER BY tier_sort ASC, display_order ASC, text ASC`,
+    [campaignId]
+  );
+  return rows;
+}
+
 export async function buildQuestionAnswers(
   campaignId: string,
   values: QuestionValues = {},
   client?: PoolClient
 ): Promise<QuestionAnswersRecord> {
-  const runner = client ?? pool;
-  const { rows } = await runner.query<{
-    question_id: string;
-    text: string;
-    type: QuestionType;
-    options: string[] | null;
-    is_required: boolean;
-    is_knockout: boolean;
-    display_order: number;
-  }>(
-    `SELECT q.question_id, q.text, q.type, q.options,
-            cq.is_required, cq.is_knockout, cq.display_order
-       FROM campaign_question cq
-       JOIN question q ON q.question_id = cq.question_id
-      WHERE cq.campaign_id = $1
-      ORDER BY cq.display_order ASC, q.text ASC`,
-    [campaignId]
-  );
-
+  const rows = await loadLiveApplyQuestions(campaignId, client);
   return {
     asked_at: new Date().toISOString(),
     answers: rows.map((r) => ({
@@ -125,6 +147,7 @@ export async function buildQuestionAnswers(
       is_required: r.is_required,
       is_knockout: r.is_knockout,
       display_order: r.display_order,
+      tier: r.tier,
       value: values[r.question_id] ?? null,
     })),
   };
@@ -132,7 +155,7 @@ export async function buildQuestionAnswers(
 
 /**
  * Builds screen.qualifier_answers for a telephonic screen (M5 calls this).
- * `values` is positional, matching campaign.screening_qualifiers order.
+ * `values` is positional, matching the campaign's department qualifiers.
  */
 export async function buildQualifierAnswers(
   campaignId: string,
@@ -141,7 +164,10 @@ export async function buildQualifierAnswers(
 ): Promise<QualifierAnswersRecord> {
   const runner = client ?? pool;
   const { rows } = await runner.query<{ screening_qualifiers: string[] | null }>(
-    'SELECT screening_qualifiers FROM campaign WHERE campaign_id = $1',
+    `SELECT d.screening_qualifiers
+       FROM campaign c
+       JOIN department d ON d.department_id = c.department_id
+      WHERE c.campaign_id = $1`,
     [campaignId]
   );
   if (rows.length === 0) throw new Error(`Unknown campaign ${campaignId}`);
@@ -159,7 +185,7 @@ export async function buildQualifierAnswers(
 
 /**
  * Builds round.scores for an interview round (M6 calls this).
- * `values` is positional, matching campaign.feedback_dimensions order.
+ * `values` is positional, matching the campaign's department dimensions.
  */
 export async function buildRoundScores(
   campaignId: string,
@@ -168,7 +194,10 @@ export async function buildRoundScores(
 ): Promise<RoundScoresRecord> {
   const runner = client ?? pool;
   const { rows } = await runner.query<{ feedback_dimensions: string[] | null }>(
-    'SELECT feedback_dimensions FROM campaign WHERE campaign_id = $1',
+    `SELECT d.feedback_dimensions
+       FROM campaign c
+       JOIN department d ON d.department_id = c.department_id
+      WHERE c.campaign_id = $1`,
     [campaignId]
   );
   if (rows.length === 0) throw new Error(`Unknown campaign ${campaignId}`);
@@ -211,6 +240,7 @@ export function readQuestionAnswers(stored: unknown): QuestionAnswer[] {
       is_required: Boolean(a.is_required),
       is_knockout: Boolean(a.is_knockout),
       display_order: Number(a.display_order ?? i),
+      tier: a.tier === 'department' || a.tier === 'campaign' ? a.tier : undefined,
       value: (a.value ?? null) as QuestionAnswer['value'],
     };
   });

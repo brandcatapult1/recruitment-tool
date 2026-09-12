@@ -1,7 +1,8 @@
 # Recruitment Operations Tool
 
-Internal HR/TA system per `prd.md` (v1). Built module by module; **M0 (Foundation)** and **M1
-(Campaign setup and question bank)** are implemented.
+Internal HR/TA system per `prd.md` (v1). Built module by module; **M0–M2** are implemented
+(foundation, campaign/department setup, public apply page). The product name in the UI is
+**Brand Catapult — HR Pulse**.
 
 There is no manual setup. The app is deployed by connecting the GitHub repo to a host (Render for
 development, Hostinger Cloud for production per PRD §13.2). On every boot the server:
@@ -46,7 +47,7 @@ password you configured.
 | `APP_BASE_URL` | The service's public URL |
 | `CAREERS_BASE_URL` | Optional. Candidate-facing base for apply links. Until set, apply links use `APP_BASE_URL` |
 | `ADMIN_NAME` / `ADMIN_EMAIL` / `ADMIN_PASSWORD` | First admin login, used only until an admin exists |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Can stay empty until M2 |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` / `CLOUDINARY_FOLDER` | **Required before this deploy.** On Render set `CLOUDINARY_FOLDER` to `dev/hr-pulse`. Every apply submission uploads a CV; if these four are missing, submissions fail. |
 
 Production (Hostinger Cloud, `main` branch, Neon `main` branch) is configured the same way, plus
 `NODE_ENV=production`. Because nothing is stored on the app server, moving between hosts is a
@@ -65,8 +66,12 @@ migration file; applied files are tracked by name in the `_migrations` table.
 | `src/constants.ts` | The single enumerations module (PRD §6). Every dropdown and validation reads from it. |
 | `migrations/0001_init.sql` | All eight tables per PRD §5, CHECK constraints mirroring §6, append-only trigger on `event`, session table. |
 | `migrations/0002_m1_campaign_setup.sql` | Unique campaign-question pairing, select-options check, campaign status index. |
-| `src/snapshots.ts` | R5: build and read helpers for question answers, screening qualifiers, and feedback scores. Recorded responses are never re-joined to live config. |
-| `src/campaigns/` | Campaign CRUD, pipeline stage list (`assignment` dropped when disabled), source variant URLs (R6: unknown source → `other`). |
+| `migrations/0003_m1_departments.sql` | Department table, seed list, campaign.department_id, job description, public salary flag. |
+| `migrations/0004_m2_apply.sql` | Apply capture fields, one application per person per campaign, honeypot audit log. |
+| `src/snapshots.ts` | R5: build and read helpers. Qualifiers and dimensions come from the department. |
+| `src/campaigns/` | Campaign CRUD, source variant URLs (R6: unknown source → `other`). |
+| `src/departments/` | Admin-only department CRUD and apply-question builder. |
+| `src/apply/` | Phone normalisation and application submit transaction. |
 | `src/questions/`, `src/routes/questions.ts` | Question bank. Deactivate, never delete. |
 | `src/routes/campaigns.ts` | Campaign form, question builder, source links. |
 | `src/db/migrate.ts` | Startup migration runner (idempotent, advisory-locked). |
@@ -81,7 +86,7 @@ migration file; applied files are tracked by name in the `_migrations` table.
 
 - `admin`, `recruiter`, `partner` can log in; `interviewer_no_login` exists as data only and is
   rejected at login even if credentials were somehow set.
-- Staff management (`/staff/**`) is Admin-only, enforced on every page and form action.
+- Staff management (`/staff/**`) and department setup (`/departments/**`) are Admin-only.
 - Campaigns and the question bank are reachable by Admin, Recruiter and Partner.
 - `/leadership` is Partner-only.
 - Enumerations live in code (`src/constants.ts`); there is no enumeration-editing surface for any role.

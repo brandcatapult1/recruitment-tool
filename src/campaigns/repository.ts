@@ -1,30 +1,29 @@
 import { pool } from '../db/pool';
-import { CAMPAIGN_STATUSES, type CampaignStatus } from '../constants';
-
-/**
- * Campaigns — a role opening (§5.2) plus its question set (§5.3).
- *
- * Screening qualifiers and feedback dimensions are stored on the campaign
- * row. Recorded screens and rounds snapshot those labels at answer time
- * (R5, src/snapshots.ts), so editing them here cannot relabel past data.
- *
- * There is no delete. Closing a campaign sets status = closed (R3).
- */
+import {
+  CAMPAIGN_STATUSES,
+  FREE_TEXT_QUESTION_TYPES,
+  MAX_CAMPAIGN_APPLY_QUESTIONS,
+  MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
+  type CampaignStatus,
+} from '../constants';
+import { departmentExists } from '../departments/repository';
 
 export interface CampaignRow {
   campaign_id: string;
   role_title: string;
-  department: string;
+  department_id: string;
+  department_name: string;
+  job_description: string;
   positions_open: number;
   salary_band_min: number | null;
   salary_band_max: number | null;
+  show_salary_publicly: boolean;
   status: CampaignStatus;
   opened_date: string | null;
   closed_date: string | null;
   public_slug: string;
-  screening_qualifiers: string[] | null;
-  feedback_dimensions: string[] | null;
-  assignment_stage_enabled: boolean;
+  process_description: string | null;
+  expected_timeline: string | null;
 }
 
 export interface CampaignQuestionRow {
@@ -40,27 +39,32 @@ export interface CampaignQuestionRow {
   active: boolean;
 }
 
+const CAMPAIGN_SELECT = `
+  SELECT c.*, d.name AS department_name
+    FROM campaign c
+    JOIN department d ON d.department_id = c.department_id
+`;
+
 export async function listCampaigns(): Promise<CampaignRow[]> {
   const { rows } = await pool.query<CampaignRow>(
-    `SELECT * FROM campaign
-      ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'on_hold' THEN 1 ELSE 2 END,
-               opened_date DESC NULLS LAST,
-               role_title ASC`
+    `${CAMPAIGN_SELECT}
+      ORDER BY CASE c.status WHEN 'open' THEN 0 WHEN 'on_hold' THEN 1 ELSE 2 END,
+               c.opened_date DESC NULLS LAST,
+               c.role_title ASC`
   );
   return rows;
 }
 
 export async function getCampaign(campaignId: string): Promise<CampaignRow | null> {
-  const { rows } = await pool.query<CampaignRow>(
-    'SELECT * FROM campaign WHERE campaign_id = $1',
-    [campaignId]
-  );
+  const { rows } = await pool.query<CampaignRow>(`${CAMPAIGN_SELECT} WHERE c.campaign_id = $1`, [
+    campaignId,
+  ]);
   return rows[0] ?? null;
 }
 
-export async function getCampaignBySlug(slug: string): Promise<CampaignRow | null> {
+export async function getOpenCampaignBySlug(slug: string): Promise<CampaignRow | null> {
   const { rows } = await pool.query<CampaignRow>(
-    'SELECT * FROM campaign WHERE public_slug = $1',
+    `${CAMPAIGN_SELECT} WHERE c.public_slug = $1 AND c.status = 'open'`,
     [slug]
   );
   return rows[0] ?? null;
@@ -68,78 +72,87 @@ export async function getCampaignBySlug(slug: string): Promise<CampaignRow | nul
 
 export interface CampaignInput {
   roleTitle: string;
-  department: string;
+  departmentId: string;
+  jobDescription: string;
   positionsOpen: number;
   salaryBandMin: number | null;
   salaryBandMax: number | null;
+  showSalaryPublicly: boolean;
   status: CampaignStatus;
   openedDate: string | null;
-  closedDate: string | null;
   publicSlug: string;
-  screeningQualifiers: string[];
-  feedbackDimensions: string[];
-  assignmentStageEnabled: boolean;
+  processDescription: string | null;
+  expectedTimeline: string | null;
 }
 
 export async function createCampaign(input: CampaignInput): Promise<CampaignRow> {
-  validate(input);
+  await validate(input);
   const slug = await uniqueSlug(input.publicSlug);
   const { rows } = await pool.query<CampaignRow>(
     `INSERT INTO campaign (
-       role_title, department, positions_open, salary_band_min, salary_band_max,
-       status, opened_date, closed_date, public_slug, screening_qualifiers,
-       feedback_dimensions, assignment_stage_enabled
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-     RETURNING *`,
+       role_title, department_id, job_description, positions_open,
+       salary_band_min, salary_band_max, show_salary_publicly,
+       status, opened_date, closed_date, public_slug,
+       process_description, expected_timeline
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,'open',$8,NULL,$9,$10,$11)
+     RETURNING campaign_id`,
     [
       input.roleTitle,
-      input.department,
+      input.departmentId,
+      input.jobDescription,
       input.positionsOpen,
       input.salaryBandMin,
       input.salaryBandMax,
-      input.status,
+      input.showSalaryPublicly,
       input.openedDate,
-      input.closedDate,
       slug,
-      asPgArray(input.screeningQualifiers),
-      asPgArray(input.feedbackDimensions),
-      input.assignmentStageEnabled,
+      input.processDescription,
+      input.expectedTimeline,
     ]
   );
-  return rows[0];
+  const created = await getCampaign(rows[0].campaign_id);
+  if (!created) throw new Error('Campaign insert failed');
+  return created;
 }
 
 export async function updateCampaign(
   campaignId: string,
-  input: CampaignInput
+  input: CampaignInput,
+  previousStatus: CampaignStatus
 ): Promise<CampaignRow | null> {
-  validate(input);
+  await validate(input);
   const slug = await uniqueSlug(input.publicSlug, campaignId);
-  const { rows } = await pool.query<CampaignRow>(
+  let closedDate: string | null = null;
+  if (input.status === 'closed') {
+    closedDate =
+      previousStatus === 'closed'
+        ? (await getCampaign(campaignId))?.closed_date ?? today()
+        : today();
+  }
+  await pool.query(
     `UPDATE campaign SET
-       role_title = $2, department = $3, positions_open = $4,
-       salary_band_min = $5, salary_band_max = $6, status = $7,
-       opened_date = $8, closed_date = $9, public_slug = $10,
-       screening_qualifiers = $11, feedback_dimensions = $12,
-       assignment_stage_enabled = $13
-     WHERE campaign_id = $1 RETURNING *`,
+       role_title = $2, department_id = $3, job_description = $4,
+       positions_open = $5, salary_band_min = $6, salary_band_max = $7,
+       show_salary_publicly = $8, status = $9, closed_date = $10,
+       public_slug = $11, process_description = $12, expected_timeline = $13
+     WHERE campaign_id = $1`,
     [
       campaignId,
       input.roleTitle,
-      input.department,
+      input.departmentId,
+      input.jobDescription,
       input.positionsOpen,
       input.salaryBandMin,
       input.salaryBandMax,
+      input.showSalaryPublicly,
       input.status,
-      input.openedDate,
-      input.closedDate,
+      closedDate,
       slug,
-      asPgArray(input.screeningQualifiers),
-      asPgArray(input.feedbackDimensions),
-      input.assignmentStageEnabled,
+      input.processDescription,
+      input.expectedTimeline,
     ]
   );
-  return rows[0] ?? null;
+  return getCampaign(campaignId);
 }
 
 export async function listCampaignQuestions(campaignId: string): Promise<CampaignQuestionRow[]> {
@@ -161,20 +174,34 @@ export interface CampaignQuestionInput {
   isKnockout: boolean;
 }
 
-/**
- * Replaces the campaign's question set in one transaction. Existing
- * applications are unaffected: they hold their own snapshot (R5).
- */
 export async function replaceCampaignQuestions(
   campaignId: string,
   items: CampaignQuestionInput[]
 ): Promise<void> {
+  if (items.length > MAX_CAMPAIGN_APPLY_QUESTIONS) {
+    throw new Error(
+      `A campaign can have at most ${MAX_CAMPAIGN_APPLY_QUESTIONS} apply questions (the 16-question cap).`
+    );
+  }
   const seen = new Set<string>();
   for (const item of items) {
-    if (seen.has(item.questionId)) {
-      throw new Error('A question can only appear once on a campaign');
-    }
+    if (seen.has(item.questionId)) throw new Error('A question can only appear once on a campaign');
     seen.add(item.questionId);
+  }
+
+  if (items.length > 0) {
+    const { rows } = await pool.query<{ question_id: string; type: string }>(
+      'SELECT question_id, type FROM question WHERE question_id = ANY($1::uuid[])',
+      [items.map((i) => i.questionId)]
+    );
+    const freeText = rows.filter((r) =>
+      (FREE_TEXT_QUESTION_TYPES as readonly string[]).includes(r.type)
+    );
+    if (freeText.length > MAX_CAMPAIGN_FREE_TEXT_QUESTIONS) {
+      throw new Error(
+        `A campaign can have at most ${MAX_CAMPAIGN_FREE_TEXT_QUESTIONS} free-text questions.`
+      );
+    }
   }
 
   const client = await pool.connect();
@@ -221,23 +248,20 @@ async function uniqueSlug(desired: string, exceptCampaignId?: string): Promise<s
   throw new Error('Could not generate a unique public URL');
 }
 
-function validate(input: CampaignInput): void {
+async function validate(input: CampaignInput): Promise<void> {
   if (!input.roleTitle.trim()) throw new Error('Role title is required');
-  if (!input.department.trim()) throw new Error('Department is required');
+  if (!input.jobDescription.trim()) throw new Error('Job description is required');
   if (!(CAMPAIGN_STATUSES as readonly string[]).includes(input.status)) {
     throw new Error('Select a valid status');
   }
   if (!Number.isInteger(input.positionsOpen) || input.positionsOpen < 1) {
     throw new Error('Positions open must be at least 1');
   }
-  if (input.screeningQualifiers.length > 2) {
-    throw new Error('At most two screening qualifiers');
-  }
-  if (input.feedbackDimensions.length > 4) {
-    throw new Error('At most four feedback dimensions');
+  if (!(await departmentExists(input.departmentId))) {
+    throw new Error('Select a department from the list');
   }
 }
 
-function asPgArray(values: string[]): string[] | null {
-  return values.length === 0 ? null : values;
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
 }

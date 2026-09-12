@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= title %> · Recruitment</title>
+  <title><%= title %> · Brand Catapult — HR Pulse</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="/">Recruitment</a>
+    <a class="brand" href="/">Brand Catapult — HR Pulse</a>
     <% if (user) { %>
       <nav class="nav">
         <a href="/">Home</a>
         <a href="/campaigns">Campaigns</a>
         <a href="/questions">Questions</a>
-        <% if (user.role === 'admin') { %><a href="/staff">Staff</a><% } %>
+        <% if (user.role === 'admin') { %><a href="/departments">Departments</a><a href="/staff">Staff</a><% } %>
         <% if (user.role === 'partner') { %><a href="/leadership">Leadership Overview</a><% } %>
       </nav>
       <div class="session">

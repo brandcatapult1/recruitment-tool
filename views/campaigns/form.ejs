@@ -2,26 +2,16 @@
 <%
   function field(name, fallback) {
     if (!campaign) return fallback || '';
-    if (campaign[name] != null && campaign[name] !== '') return campaign[name];
-    return fallback || '';
+    const v = campaign[name];
+    if (v == null || v === '') return fallback || '';
+    return v;
   }
-  function qualifier(n) {
-    if (campaign && Array.isArray(campaign.screening_qualifiers)) {
-      return campaign.screening_qualifiers[n - 1] || '';
-    }
-    return field('qualifier_' + n, '');
-  }
-  function dimension(n) {
-    if (campaign && Array.isArray(campaign.feedback_dimensions)) {
-      return campaign.feedback_dimensions[n - 1] || '';
-    }
-    return field('dimension_' + n, '');
-  }
-  const assignmentOn = campaign && (campaign.assignment_stage_enabled === true || campaign.assignment_stage_enabled === 'true' || campaign.assignment_stage_enabled === 'on');
+  const showSalary = !(campaign && (campaign.show_salary_publicly === false || campaign.show_salary_publicly === 'false'));
+  const currentDept = field('department_id');
 %>
 <div class="card">
   <h1><%= title %></h1>
-  <p class="muted">One screen. Someone who has done this before should finish in under three minutes.</p>
+  <p class="muted">One screen. Qualifiers and interview dimensions live on the department, not here.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" class="campaign-form">
     <div class="grid-2">
@@ -29,56 +19,48 @@
         <input type="text" name="role_title" required value="<%= field('role_title') %>" autofocus>
       </label>
       <label>Department
-        <input type="text" name="department" required value="<%= field('department') %>">
+        <select name="department_id" required>
+          <option value="" disabled <%= currentDept ? '' : 'selected' %>>Select a department</option>
+          <% for (const d of departments) { %>
+            <option value="<%= d.department_id %>" <%= currentDept === d.department_id ? 'selected' : '' %>><%= d.name %></option>
+          <% } %>
+        </select>
       </label>
       <label>Positions open
         <input type="number" name="positions_open" min="1" step="1" value="<%= field('positions_open', 1) %>">
       </label>
-      <label>Status
-        <select name="status">
-          <% for (const s of statuses) { %>
-            <option value="<%= s %>" <%= field('status', 'open') === s ? 'selected' : '' %>><%= s %></option>
-          <% } %>
-        </select>
-      </label>
-      <label>Salary band min <span class="muted">(shown on apply page)</span>
+      <% if (mode === 'edit') { %>
+        <label>Status
+          <select name="status">
+            <% for (const s of statuses) { %>
+              <option value="<%= s %>" <%= field('status', 'open') === s ? 'selected' : '' %>><%= s %></option>
+            <% } %>
+          </select>
+        </label>
+      <% } %>
+      <label>Salary band min
         <input type="number" name="salary_band_min" value="<%= field('salary_band_min') %>">
       </label>
       <label>Salary band max
         <input type="number" name="salary_band_max" value="<%= field('salary_band_max') %>">
       </label>
-      <label>Opened date
-        <input type="date" name="opened_date" value="<%= field('opened_date') %>">
-      </label>
-      <label>Closed date <span class="muted">(required when status is closed)</span>
-        <input type="date" name="closed_date" value="<%= field('closed_date') %>">
-      </label>
     </div>
+    <label class="check">
+      <input type="checkbox" name="show_salary_publicly" value="true" <%= showSalary ? 'checked' : '' %>>
+      Show salary band on the public apply page
+    </label>
+    <label>Job description
+      <textarea name="job_description" rows="8" required><%= field('job_description') %></textarea>
+    </label>
+    <label>Process description <span class="muted">(shown on the apply page)</span>
+      <textarea name="process_description" rows="3"><%= field('process_description', defaultProcess) %></textarea>
+    </label>
+    <label>Expected timeline
+      <input type="text" name="expected_timeline" value="<%= field('expected_timeline', defaultTimeline) %>">
+    </label>
     <label>Public URL slug <span class="muted">(leave blank to generate from the role title)</span>
       <input type="text" name="public_slug" value="<%= field('public_slug') %>" placeholder="senior-copywriter">
     </label>
-
-    <fieldset>
-      <legend>Screening qualifiers <span class="muted">(max 2 — asked on the telephonic screen)</span></legend>
-      <label>Qualifier 1 <input type="text" name="qualifier_1" value="<%= qualifier(1) %>"></label>
-      <label>Qualifier 2 <input type="text" name="qualifier_2" value="<%= qualifier(2) %>"></label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Feedback dimensions <span class="muted">(max 4 — scored 1–5 on interview rounds)</span></legend>
-      <div class="grid-2">
-        <label>Dimension 1 <input type="text" name="dimension_1" value="<%= dimension(1) %>"></label>
-        <label>Dimension 2 <input type="text" name="dimension_2" value="<%= dimension(2) %>"></label>
-        <label>Dimension 3 <input type="text" name="dimension_3" value="<%= dimension(3) %>"></label>
-        <label>Dimension 4 <input type="text" name="dimension_4" value="<%= dimension(4) %>"></label>
-      </div>
-    </fieldset>
-
-    <label class="check">
-      <input type="checkbox" name="assignment_stage_enabled" value="true" <%= assignmentOn ? 'checked' : '' %>>
-      Include an Assignment stage on this campaign's pipeline
-    </label>
-
     <div class="form-actions">
       <button type="submit" class="primary">Save campaign</button>
       <a href="/campaigns">Cancel</a>

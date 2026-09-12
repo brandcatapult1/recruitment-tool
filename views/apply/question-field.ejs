@@ -1,0 +1,33 @@
+<%
+  const name = 'q_' + q.question_id;
+  const raw = values[name];
+  const current = raw == null ? '' : raw;
+  const isFree = freeTextTypes.includes(q.type);
+%>
+<label><%= q.text %>
+  <% if (q.type === 'select') { %>
+    <select name="<%= name %>" <%= q.is_required ? 'required' : '' %>>
+      <option value="">Select</option>
+      <% for (const opt of (q.options || [])) { %>
+        <option value="<%= opt %>" <%= current === opt ? 'selected' : '' %>><%= opt %></option>
+      <% } %>
+    </select>
+  <% } else if (q.type === 'multi_select') { %>
+    <span class="multi">
+      <% for (const opt of (q.options || [])) { %>
+        <label class="check">
+          <input type="checkbox" name="<%= name %>" value="<%= opt %>" <%= (Array.isArray(raw) ? raw : [raw]).includes(opt) ? 'checked' : '' %>>
+          <%= opt %>
+        </label>
+      <% } %>
+    </span>
+  <% } else if (q.type === 'number') { %>
+    <input type="number" name="<%= name %>" <%= q.is_required ? 'required' : '' %> value="<%= current %>">
+  <% } else if (q.type === 'url') { %>
+    <input type="url" name="<%= name %>" <%= q.is_required ? 'required' : '' %> value="<%= current %>">
+  <% } else { %>
+    <textarea name="<%= name %>" <%= q.is_required ? 'required' : '' %> maxlength="<%= isFree ? charLimit : 2000 %>"
+      data-counter="c-<%= q.question_id %>" rows="4"><%= current %></textarea>
+    <% if (isFree) { %><span class="count" id="c-<%= q.question_id %>">0 / <%= charLimit %></span><% } %>
+  <% } %>
+</label>

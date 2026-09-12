@@ -34,49 +34,42 @@ function asArray(value: unknown): string[] {
 
 export interface ParsedCampaignForm {
   roleTitle: string;
-  department: string;
+  departmentId: string;
+  jobDescription: string;
   positionsOpen: number;
   salaryBandMin: number | null;
   salaryBandMax: number | null;
+  showSalaryPublicly: boolean;
   status: 'open' | 'on_hold' | 'closed';
-  openedDate: string | null;
-  closedDate: string | null;
   publicSlug: string;
-  screeningQualifiers: string[];
-  feedbackDimensions: string[];
-  assignmentStageEnabled: boolean;
+  processDescription: string | null;
+  expectedTimeline: string | null;
 }
 
 export function parseCampaignForm(
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  mode: 'create' | 'edit'
 ): ParsedCampaignForm | { error: string } {
   const roleTitle = String(body.role_title ?? '').trim();
-  const department = String(body.department ?? '').trim();
+  const departmentId = String(body.department_id ?? '').trim();
+  const jobDescription = String(body.job_description ?? '').trim();
   const positionsOpen = Number(body.positions_open ?? 1);
-  const salaryBandMin = body.salary_band_min === '' || body.salary_band_min == null
-    ? null
-    : Number(body.salary_band_min);
-  const salaryBandMax = body.salary_band_max === '' || body.salary_band_max == null
-    ? null
-    : Number(body.salary_band_max);
-  const status = String(body.status ?? 'open');
-  const openedDate = String(body.opened_date ?? '').trim() || null;
-  const closedDate = String(body.closed_date ?? '').trim() || null;
+  const salaryBandMin =
+    body.salary_band_min === '' || body.salary_band_min == null ? null : Number(body.salary_band_min);
+  const salaryBandMax =
+    body.salary_band_max === '' || body.salary_band_max == null ? null : Number(body.salary_band_max);
+  const showSalaryPublicly = String(body.show_salary_publicly ?? '') === 'true';
+  const status = mode === 'create' ? 'open' : String(body.status ?? 'open');
   const publicSlug = String(body.public_slug ?? '').trim();
-  const screeningQualifiers = [
-    String(body.qualifier_1 ?? '').trim(),
-    String(body.qualifier_2 ?? '').trim(),
-  ].filter(Boolean);
-  const feedbackDimensions = [
-    String(body.dimension_1 ?? '').trim(),
-    String(body.dimension_2 ?? '').trim(),
-    String(body.dimension_3 ?? '').trim(),
-    String(body.dimension_4 ?? '').trim(),
-  ].filter(Boolean);
-  const assignmentStageEnabled = String(body.assignment_stage_enabled ?? '') === 'true';
+  const processDescription = String(body.process_description ?? '').trim() || null;
+  const expectedTimeline = String(body.expected_timeline ?? '').trim() || null;
 
   if (!roleTitle) return { error: 'Role title is required.' };
-  if (!department) return { error: 'Department is required.' };
+  if (!departmentId) return { error: 'Select a department.' };
+  if (!/^[0-9a-f-]{36}$/i.test(departmentId)) {
+    return { error: 'Select a department from the list.' };
+  }
+  if (!jobDescription) return { error: 'Job description is required.' };
   if (!Number.isInteger(positionsOpen) || positionsOpen < 1) {
     return { error: 'Positions open must be a whole number of at least 1.' };
   }
@@ -89,23 +82,19 @@ export function parseCampaignForm(
   if (!['open', 'on_hold', 'closed'].includes(status)) {
     return { error: 'Select a valid status.' };
   }
-  if (status === 'closed' && !closedDate) {
-    return { error: 'Closed campaigns need a closed date.' };
-  }
 
   return {
     roleTitle,
-    department,
+    departmentId,
+    jobDescription,
     positionsOpen,
     salaryBandMin,
     salaryBandMax,
+    showSalaryPublicly,
     status: status as ParsedCampaignForm['status'],
-    openedDate,
-    closedDate: status === 'closed' ? closedDate : null,
     publicSlug,
-    screeningQualifiers,
-    feedbackDimensions,
-    assignmentStageEnabled,
+    processDescription,
+    expectedTimeline,
   };
 }
 
@@ -114,8 +103,7 @@ export function parseQuestionBuilderForm(
 ): { questionId: string; displayOrder: number; isRequired: boolean; isKnockout: boolean }[] {
   const selected = asArray(body.selected);
   return selected.map((questionId, index) => {
-    const orderRaw = body[`order_${questionId}`];
-    const displayOrder = Number(orderRaw ?? index + 1);
+    const displayOrder = Number(body[`order_${questionId}`] ?? index + 1);
     return {
       questionId,
       displayOrder: Number.isFinite(displayOrder) ? displayOrder : index + 1,
@@ -123,4 +111,32 @@ export function parseQuestionBuilderForm(
       isKnockout: String(body[`knockout_${questionId}`] ?? '') === 'on',
     };
   });
+}
+
+export function parseDepartmentForm(
+  body: Record<string, unknown>
+): { name: string; screeningQualifiers: string[]; feedbackDimensions: string[] } | { error: string } {
+  const name = String(body.name ?? '').trim();
+  const screeningQualifiers = [
+    String(body.qualifier_1 ?? '').trim(),
+    String(body.qualifier_2 ?? '').trim(),
+  ].filter(Boolean);
+  const feedbackDimensions = [
+    String(body.dimension_1 ?? '').trim(),
+    String(body.dimension_2 ?? '').trim(),
+    String(body.dimension_3 ?? '').trim(),
+    String(body.dimension_4 ?? '').trim(),
+  ].filter(Boolean);
+  if (!name) return { error: 'Department name is required.' };
+  return { name, screeningQualifiers, feedbackDimensions };
+}
+
+export function parseDepartmentQuestionBuilder(
+  body: Record<string, unknown>
+): { questionId: string; displayOrder: number; isRequired: boolean }[] {
+  return parseQuestionBuilderForm(body).map(({ questionId, displayOrder, isRequired }) => ({
+    questionId,
+    displayOrder,
+    isRequired,
+  }));
 }
