@@ -1,0 +1,40 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Brands</h1>
+    <p class="page-sub">Hiring entities. Campaigns and departments belong to a brand. The candidate pool is shared.</p>
+  </div>
+  <a class="btn-primary" href="/brands/new">Add brand</a>
+</div>
+<section class="card campaign-glass-tile">
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Apply-page title</th><th>Logo</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% for (const b of brands) { %>
+          <tr class="<%= b.active ? '' : 'inactive' %>">
+            <td><%= b.name %></td>
+            <td><%= b.apply_page_title %></td>
+            <td><% if (b.logo_public_id) { %><img class="brand-logo-thumb" src="/brands/<%= b.brand_id %>/logo" alt=""><% } else { %>—<% } %></td>
+            <td><%= b.active ? 'Active' : 'Inactive' %></td>
+            <td class="actions">
+              <a href="/brands/<%= b.brand_id %>/edit">Edit</a>
+              <% if (b.active) { %>
+                <form method="post" action="/brands/<%= b.brand_id %>/deactivate" class="inline">
+                  <button type="submit" class="link-button">Deactivate</button>
+                </form>
+              <% } else { %>
+                <form method="post" action="/brands/<%= b.brand_id %>/reactivate" class="inline">
+                  <button type="submit" class="link-button">Reactivate</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('../partials/footer') %>

@@ -1,0 +1,26 @@
+<%- include('../partials/header') %>
+<div class="card campaign-glass-tile narrow wide">
+  <h1><%= title %></h1>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" enctype="multipart/form-data">
+    <label>Name
+      <input type="text" name="name" required value="<%= brand ? brand.name : '' %>" autofocus>
+    </label>
+    <label>Apply-page title
+      <span class="muted">Shown publicly on this brand's apply pages.</span>
+      <input type="text" name="apply_page_title" required value="<%= brand ? brand.apply_page_title : '' %>">
+    </label>
+    <label>Logo
+      <span class="muted">Public image on apply pages. PNG, JPG, SVG or WebP. Leave blank to keep the current logo.</span>
+      <% if (brand && brand.logo_public_id) { %>
+        <img class="brand-logo-preview" src="/brands/<%= brand.brand_id %>/logo" alt="">
+      <% } %>
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="primary">Save</button>
+      <a class="btn-secondary" href="/brands">Cancel</a>
+    </div>
+  </form>
+</div>
+<%- include('../partials/footer') %>

@@ -85,7 +85,6 @@ html, body {
 .page {
   position: relative;
   min-height: 100vh;
-  padding: 1.25rem;
 }
 
 .aurora {
@@ -129,6 +128,124 @@ html, body {
   z-index: 10;
   max-width: 72rem;
   margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.page.has-sidebar {
+  padding: 0;
+}
+
+/* PR Pulse AppShell: 220px white sidebar, content offset */
+.sidebar {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 220px;
+  z-index: 30;
+  background: #fff;
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.sidebar-brand {
+  display: block;
+  border-bottom: 1px solid rgba(232, 234, 239, 0.6);
+  padding: 1.25rem 1rem 1rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+.sidebar-brand img {
+  display: block;
+  height: 2rem;
+  width: 2rem;
+}
+.sidebar-brand span {
+  display: block;
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+.sidebar nav {
+  flex: 1;
+  padding: 0.5rem;
+}
+.sidebar nav a {
+  display: block;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.625rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--ink-secondary);
+  text-decoration: none;
+}
+.sidebar nav a:hover { background: var(--canvas); color: var(--ink); }
+.sidebar nav a.active {
+  background: var(--brand-soft);
+  font-weight: 500;
+  color: var(--brand);
+}
+.sidebar-session {
+  border-top: 1px solid var(--line);
+  padding: 0.75rem;
+}
+.sidebar-session .who {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+.sidebar-session .muted {
+  font-size: 0.6875rem;
+  margin: 0.125rem 0 0.5rem;
+}
+.sidebar-session .btn-ghost {
+  width: 100%;
+  justify-content: flex-start;
+  padding-left: 0.5rem;
+}
+.mobile-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 3rem;
+  padding: 0 0.75rem;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.sidebar-toggle {
+  display: inline-flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(26, 29, 38, 0.3);
+}
+.frame { position: relative; z-index: 10; min-width: 0; }
+
+@media (min-width: 768px) {
+  .sidebar { display: flex; }
+  .page.has-sidebar .frame { padding-left: 220px; }
+  .mobile-bar { display: none; }
+  .sidebar-backdrop { display: none !important; }
+}
+
+@media (max-width: 767px) {
+  .sidebar.is-open { display: flex; z-index: 40; }
 }
 
 /* .campaign-glass-tile from PR Pulse index.css — preview applies glass here, not on .card */
@@ -225,6 +342,7 @@ h1, .page-title {
 }
 .card-head h1 { margin: 0; }
 
+.card > h2:first-child { margin-top: 0; }
 h2, .section-title {
   font-size: 10px;
   font-weight: 600;
@@ -392,6 +510,33 @@ input:focus, select:focus, textarea:focus, .input-field:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
 }
+input[type="file"] {
+  height: auto;
+  padding: 0.25rem 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.brand-logo-thumb {
+  height: 1.5rem;
+  width: auto;
+  vertical-align: middle;
+}
+.brand-logo-preview {
+  display: block;
+  height: 2.5rem;
+  width: auto;
+  margin: 0.5rem 0;
+}
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+.filter-bar label { margin: 0; }
+.filter-bar select { width: auto; min-width: 12rem; }
 input[type="checkbox"] {
   width: 1rem;
   height: 1rem;

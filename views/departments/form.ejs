@@ -17,6 +17,19 @@
   <h1><%= title %></h1>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post">
+    <% if (!department || !department.department_id) { %>
+      <label>Brand
+        <span class="muted">Brand can't be changed later.</span>
+        <select name="brand_id" required>
+          <option value="" disabled <%= department && department.brand_id ? '' : 'selected' %>>Select a brand</option>
+          <% for (const b of brands) { %>
+            <option value="<%= b.brand_id %>" <%= department && department.brand_id === b.brand_id ? 'selected' : '' %>><%= b.name %></option>
+          <% } %>
+        </select>
+      </label>
+    <% } else { %>
+      <p class="muted">Brand: <%= department.brand_name %> (can't be changed)</p>
+    <% } %>
     <label>Name
       <input type="text" name="name" required value="<%= department ? department.name : '' %>">
     </label>

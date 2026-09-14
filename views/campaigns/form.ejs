@@ -8,6 +8,7 @@
   }
   const showSalary = !(campaign && (campaign.show_salary_publicly === false || campaign.show_salary_publicly === 'false'));
   const currentDept = field('department_id');
+  const currentBrand = field('brand_id');
 %>
 <div class="card campaign-glass-tile">
   <h1><%= title %></h1>
@@ -18,11 +19,27 @@
       <label>Role title
         <input type="text" name="role_title" required value="<%= field('role_title') %>" autofocus>
       </label>
+      <% if (mode === 'create') { %>
+        <label>Brand
+          <span class="muted">Brand can't be changed later.</span>
+          <select name="brand_id" id="brand-select" required>
+            <option value="" disabled <%= currentBrand ? '' : 'selected' %>>Select a brand</option>
+            <% for (const b of brands) { %>
+              <option value="<%= b.brand_id %>" <%= currentBrand === b.brand_id ? 'selected' : '' %>><%= b.name %></option>
+            <% } %>
+          </select>
+        </label>
+      <% } else { %>
+        <label>Brand
+          <span class="muted">Set at creation and can't be changed.</span>
+          <input type="text" value="<%= campaign.brand_name || '' %>" disabled>
+        </label>
+      <% } %>
       <label>Department
-        <select name="department_id" required>
+        <select name="department_id" id="department-select" required>
           <option value="" disabled <%= currentDept ? '' : 'selected' %>>Select a department</option>
           <% for (const d of departments) { %>
-            <option value="<%= d.department_id %>" <%= currentDept === d.department_id ? 'selected' : '' %>><%= d.name %></option>
+            <option value="<%= d.department_id %>" data-brand="<%= d.brand_id %>" <%= currentDept === d.department_id ? 'selected' : '' %>><%= d.name %></option>
           <% } %>
         </select>
       </label>
@@ -96,6 +113,28 @@
       input.setCustomValidity('');
     }
   });
+})();
+</script>
+<script>
+(function () {
+  var brand = document.getElementById('brand-select');
+  var dept = document.getElementById('department-select');
+  if (!dept) return;
+  var lockedBrand = <%= mode === 'edit' ? JSON.stringify(String(campaign.brand_id || '')) : 'null' %>;
+  function filterDepts() {
+    var brandId = lockedBrand || (brand && brand.value) || '';
+    var options = dept.querySelectorAll('option[data-brand]');
+    var keep = dept.value;
+    options.forEach(function (opt) {
+      var match = Boolean(brandId) && opt.getAttribute('data-brand') === brandId;
+      opt.hidden = !match;
+      opt.disabled = !match;
+    });
+    var selected = dept.selectedOptions[0];
+    if (selected && selected.disabled) dept.value = '';
+  }
+  if (brand) brand.addEventListener('change', filterDepts);
+  filterDepts();
 })();
 </script>
 <%- include('../partials/footer') %>

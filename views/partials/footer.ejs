@@ -1,5 +1,23 @@
 </main>
 </div>
 </div>
+</div>
+<script>
+(function () {
+  var sidebar = document.getElementById('sidebar');
+  var backdrop = document.getElementById('sidebar-backdrop');
+  var openBtn = document.getElementById('sidebar-open');
+  if (!sidebar || !openBtn) return;
+  function close() {
+    sidebar.classList.remove('is-open');
+    if (backdrop) backdrop.hidden = true;
+  }
+  openBtn.addEventListener('click', function () {
+    sidebar.classList.add('is-open');
+    if (backdrop) backdrop.hidden = false;
+  });
+  if (backdrop) backdrop.addEventListener('click', close);
+})();
+</script>
 </body>
 </html>

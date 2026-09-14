@@ -3,12 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Application received · Brand Catapult — HR Pulse</title>
+  <title>Application received · <%= typeof campaign !== 'undefined' && campaign ? campaign.apply_page_title : 'HR Pulse' %></title>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/apply.css">
 </head>
 <body>
   <main class="apply">
-    <p class="eyebrow">Brand Catapult — HR Pulse</p>
+    <% if (typeof campaign !== 'undefined' && campaign) { %>
+      <p class="eyebrow">
+        <% if (campaign.logo_public_id) { %>
+          <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
+        <% } %>
+        <%= campaign.apply_page_title %>
+      </p>
+    <% } %>
     <h1>We’ve got your application</h1>
     <p>Thank you. If there’s a next step, someone from our talent team will be in touch.</p>
   </main>

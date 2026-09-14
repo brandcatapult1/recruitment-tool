@@ -13,6 +13,7 @@ import {
   type DepartmentRow,
 } from '../departments/repository';
 import { listQuestions } from '../questions/repository';
+import { listBrands } from '../brands/repository';
 import { isUserFacingError } from '../http/errors';
 import { setFlash } from '../http/flash';
 
@@ -47,35 +48,62 @@ async function departmentShowLocals(
 
 departmentsRouter.get('/', async (req, res, next) => {
   try {
-    const departments = await listDepartments(true);
-    res.render('departments/list', { title: 'Departments', departments, user: sessionUser(req) });
+    const [departments, brands] = await Promise.all([listDepartments(true), listBrands(true)]);
+    res.render('departments/list', { title: 'Departments', departments, brands, user: sessionUser(req) });
   } catch (err) {
     next(err);
   }
 });
 
-departmentsRouter.get('/new', (req, res) => {
-  res.render('departments/form', {
-    title: 'Add department',
-    department: null,
-    error: null,
-    user: sessionUser(req),
-  });
+departmentsRouter.get('/new', async (req, res, next) => {
+  try {
+    res.render('departments/form', {
+      title: 'Add department',
+      department: null,
+      brands: await listBrands(false),
+      error: null,
+      user: sessionUser(req),
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 departmentsRouter.post('/new', async (req, res, next) => {
   try {
     const parsed = parseDepartmentForm(req.body);
+    const brands = await listBrands(false);
     if ('error' in parsed) {
       return res.status(400).render('departments/form', {
         title: 'Add department',
         department: req.body,
+        brands,
         error: parsed.error,
         user: sessionUser(req),
       });
     }
-    const created = await createDepartment(parsed);
-    res.redirect(`/departments/${created.department_id}`);
+    if (!parsed.brandId || !/^[0-9a-f-]{36}$/i.test(parsed.brandId)) {
+      return res.status(400).render('departments/form', {
+        title: 'Add department',
+        department: req.body,
+        brands,
+        error: 'Select a brand.',
+        user: sessionUser(req),
+      });
+    }
+    try {
+      const created = await createDepartment(parsed);
+      res.redirect(`/departments/${created.department_id}`);
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      return res.status(400).render('departments/form', {
+        title: 'Add department',
+        department: req.body,
+        brands,
+        error: err.message,
+        user: sessionUser(req),
+      });
+    }
   } catch (err) {
     next(err);
   }
@@ -102,6 +130,7 @@ departmentsRouter.get('/:departmentId/edit', async (req, res, next) => {
     res.render('departments/form', {
       title: `Edit ${department.name}`,
       department,
+      brands: [],
       error: null,
       user: sessionUser(req),
     });
@@ -121,11 +150,23 @@ departmentsRouter.post('/:departmentId/edit', async (req, res, next) => {
       return res.status(400).render('departments/form', {
         title: `Edit ${department.name}`,
         department: { ...department, ...req.body },
+        brands: [],
         error: parsed.error,
         user: sessionUser(req),
       });
     }
-    await updateDepartment(department.department_id, parsed);
+    try {
+      await updateDepartment(department.department_id, parsed);
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      return res.status(400).render('departments/form', {
+        title: `Edit ${department.name}`,
+        department: { ...department, ...req.body },
+        brands: [],
+        error: err.message,
+        user: sessionUser(req),
+      });
+    }
     res.redirect(`/departments/${department.department_id}`);
   } catch (err) {
     next(err);

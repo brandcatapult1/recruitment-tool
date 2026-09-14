@@ -8,6 +8,8 @@ import { UserFacingError } from '../http/errors';
 
 export interface DepartmentRow {
   department_id: string;
+  brand_id: string;
+  brand_name: string;
   name: string;
   screening_qualifiers: string[] | null;
   feedback_dimensions: string[] | null;
@@ -28,19 +30,34 @@ export interface DepartmentQuestionRow {
 
 export async function listDepartments(includeInactive = true): Promise<DepartmentRow[]> {
   const { rows } = await pool.query<DepartmentRow>(
-    `SELECT * FROM department ${includeInactive ? '' : 'WHERE active = true'}
-      ORDER BY active DESC, name ASC`
+    `SELECT d.*, b.name AS brand_name
+       FROM department d
+       JOIN brand b ON b.brand_id = d.brand_id
+      ${includeInactive ? '' : 'WHERE d.active = true'}
+      ORDER BY b.name ASC, d.active DESC, d.name ASC`
   );
   return rows;
 }
 
-export async function listActiveDepartments(): Promise<DepartmentRow[]> {
-  return listDepartments(false);
+export async function listActiveDepartments(brandId?: string): Promise<DepartmentRow[]> {
+  if (!brandId) return listDepartments(false);
+  const { rows } = await pool.query<DepartmentRow>(
+    `SELECT d.*, b.name AS brand_name
+       FROM department d
+       JOIN brand b ON b.brand_id = d.brand_id
+      WHERE d.active = true AND d.brand_id = $1
+      ORDER BY d.name ASC`,
+    [brandId]
+  );
+  return rows;
 }
 
 export async function getDepartment(departmentId: string): Promise<DepartmentRow | null> {
   const { rows } = await pool.query<DepartmentRow>(
-    'SELECT * FROM department WHERE department_id = $1',
+    `SELECT d.*, b.name AS brand_name
+       FROM department d
+       JOIN brand b ON b.brand_id = d.brand_id
+      WHERE d.department_id = $1`,
     [departmentId]
   );
   return rows[0] ?? null;
@@ -55,32 +72,50 @@ export async function departmentExists(departmentId: string): Promise<boolean> {
 
 export interface DepartmentInput {
   name: string;
+  brandId?: string;
   screeningQualifiers: string[];
   feedbackDimensions: string[];
 }
 
 export async function createDepartment(input: DepartmentInput): Promise<DepartmentRow> {
   validate(input);
-  const { rows } = await pool.query<DepartmentRow>(
-    `INSERT INTO department (name, screening_qualifiers, feedback_dimensions)
-     VALUES ($1, $2, $3) RETURNING *`,
-    [input.name, asPgArray(input.screeningQualifiers), asPgArray(input.feedbackDimensions)]
-  );
-  return rows[0];
+  if (!input.brandId) throw new UserFacingError('Select a brand.');
+  try {
+    const { rows } = await pool.query<{ department_id: string }>(
+      `INSERT INTO department (name, brand_id, screening_qualifiers, feedback_dimensions)
+       VALUES ($1, $2, $3, $4) RETURNING department_id`,
+      [input.name, input.brandId, asPgArray(input.screeningQualifiers), asPgArray(input.feedbackDimensions)]
+    );
+    const created = await getDepartment(rows[0].department_id);
+    if (!created) throw new Error('Department insert failed');
+    return created;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new UserFacingError('A department with that name already exists for this brand.');
+    }
+    throw err;
+  }
 }
 
 export async function updateDepartment(
   departmentId: string,
   input: DepartmentInput
 ): Promise<DepartmentRow | null> {
-  validate(input);
-  const { rows } = await pool.query<DepartmentRow>(
-    `UPDATE department
-        SET name = $2, screening_qualifiers = $3, feedback_dimensions = $4
-      WHERE department_id = $1 RETURNING *`,
-    [departmentId, input.name, asPgArray(input.screeningQualifiers), asPgArray(input.feedbackDimensions)]
-  );
-  return rows[0] ?? null;
+  validate(input, { nameOnly: true });
+  try {
+    await pool.query(
+      `UPDATE department
+          SET name = $2, screening_qualifiers = $3, feedback_dimensions = $4
+        WHERE department_id = $1`,
+      [departmentId, input.name, asPgArray(input.screeningQualifiers), asPgArray(input.feedbackDimensions)]
+    );
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new UserFacingError('A department with that name already exists for this brand.');
+    }
+    throw err;
+  }
+  return getDepartment(departmentId);
 }
 
 export async function setDepartmentActive(
@@ -161,10 +196,15 @@ export async function replaceDepartmentQuestions(
   }
 }
 
-function validate(input: DepartmentInput): void {
-  if (!input.name.trim()) throw new Error('Department name is required');
-  if (input.screeningQualifiers.length > 2) throw new Error('At most two screening qualifiers');
-  if (input.feedbackDimensions.length > 4) throw new Error('At most four feedback dimensions');
+function validate(input: DepartmentInput, opts: { nameOnly?: boolean } = {}): void {
+  if (!input.name.trim()) throw new UserFacingError('Department name is required.');
+  if (!opts.nameOnly && !input.brandId) throw new UserFacingError('Select a brand.');
+  if (input.screeningQualifiers.length > 2) throw new UserFacingError('At most two screening qualifiers');
+  if (input.feedbackDimensions.length > 4) throw new UserFacingError('At most four feedback dimensions');
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505';
 }
 
 function asPgArray(values: string[]): string[] | null {

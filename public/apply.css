@@ -10,7 +10,8 @@ body {
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
-.eyebrow { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: #667085; }
+.eyebrow { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: #667085; display: flex; align-items: center; gap: 10px; }
+.apply-logo { height: 28px; width: auto; }
 h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 4px; }
 h2 { font-size: 16px; margin: 28px 0 10px; }
 .dept, .timeline, .hint, .count { color: #667085; font-size: 14px; }

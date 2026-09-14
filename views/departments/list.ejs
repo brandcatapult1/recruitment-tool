@@ -2,18 +2,25 @@
 <div class="page-head">
   <div>
     <h1 class="page-title">Departments</h1>
-    <p class="page-sub">Each department owns apply questions, screening qualifiers and interview dimensions for every campaign in it. Deactivate rather than delete.</p>
+    <p class="page-sub">Each department belongs to one brand. Qualifiers and interview dimensions are inherited by every campaign in that department.</p>
   </div>
   <a class="btn-primary" href="/departments/new">Add department</a>
 </div>
+<% for (const b of brands) {
+  const rows = departments.filter((d) => d.brand_id === b.brand_id);
+%>
 <section class="card campaign-glass-tile">
+  <h2><%= b.name %></h2>
+  <% if (rows.length === 0) { %>
+    <p class="muted">No departments yet.</p>
+  <% } else { %>
   <div class="panel">
     <table>
       <thead>
         <tr><th>Name</th><th>Status</th><th></th></tr>
       </thead>
       <tbody>
-        <% for (const d of departments) { %>
+        <% for (const d of rows) { %>
           <tr class="<%= d.active ? '' : 'inactive' %>">
             <td><a href="/departments/<%= d.department_id %>"><%= d.name %></a></td>
             <td><%= d.active ? 'Active' : 'Inactive' %></td>
@@ -34,5 +41,7 @@
       </tbody>
     </table>
   </div>
+  <% } %>
 </section>
+<% } %>
 <%- include('../partials/footer') %>

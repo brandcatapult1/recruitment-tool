@@ -3,12 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= campaign.role_title %> · Brand Catapult — HR Pulse</title>
+  <title><%= campaign.role_title %> · <%= campaign.apply_page_title %></title>
+  <link rel="icon" href="/favicon.ico" sizes="32x32">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/apply.css">
 </head>
 <body>
   <main class="apply">
-    <p class="eyebrow">Brand Catapult — HR Pulse</p>
+    <p class="eyebrow">
+      <% if (campaign.logo_public_id) { %>
+        <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
+      <% } %>
+      <%= campaign.apply_page_title %>
+    </p>
     <h1><%= campaign.role_title %></h1>
     <p class="dept"><%= campaign.department_name %></p>
 

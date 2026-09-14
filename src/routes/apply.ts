@@ -15,12 +15,22 @@ const upload = multer({
 
 export const applyRouter = Router();
 
-applyRouter.get('/apply/:slug/thanks/:applicationId', (req, res) => {
-  res.render('apply/thanks', { title: 'Application received' });
+applyRouter.get('/apply/:slug/thanks/:applicationId', async (req, res, next) => {
+  try {
+    const campaign = await getOpenCampaignBySlug(String(req.params.slug));
+    res.render('apply/thanks', { title: 'Application received', campaign: campaign ?? null });
+  } catch (err) {
+    next(err);
+  }
 });
 
-applyRouter.get('/apply/:slug/thanks', (req, res) => {
-  res.render('apply/thanks', { title: 'Application received' });
+applyRouter.get('/apply/:slug/thanks', async (req, res, next) => {
+  try {
+    const campaign = await getOpenCampaignBySlug(String(req.params.slug));
+    res.render('apply/thanks', { title: 'Application received', campaign: campaign ?? null });
+  } catch (err) {
+    next(err);
+  }
 });
 
 applyRouter.get(['/apply/:slug', '/apply/:slug/:source'], async (req, res, next) => {

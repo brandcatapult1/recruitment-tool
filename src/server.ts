@@ -11,6 +11,7 @@ import { homeRouter } from './routes/home';
 import { questionsRouter } from './routes/questions';
 import { campaignsRouter } from './routes/campaigns';
 import { departmentsRouter } from './routes/departments';
+import { brandsRouter } from './routes/brands';
 import { applyRouter } from './routes/apply';
 import { filesRouter } from './routes/files';
 import { sessionUser } from './auth/middleware';
@@ -43,6 +44,7 @@ app.use('/staff', staffRouter);
 app.use('/questions', questionsRouter);
 app.use('/campaigns', campaignsRouter);
 app.use('/departments', departmentsRouter);
+app.use('/brands', brandsRouter);
 app.use(applyRouter);
 app.use(filesRouter);
 

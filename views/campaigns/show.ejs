@@ -13,7 +13,7 @@
 <div class="page-head">
   <div>
     <h1 class="page-title"><%= campaign.role_title %></h1>
-    <p class="page-sub"><%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
+    <p class="page-sub"><%= campaign.brand_name %> · <%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
       · salary <%= campaign.show_salary_publicly ? 'public' : 'hidden' %></p>
   </div>
   <a class="btn-primary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>

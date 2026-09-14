@@ -7,11 +7,22 @@
   <a class="btn-primary" href="/campaigns/new">New campaign</a>
 </div>
 <section class="card campaign-glass-tile">
+  <form method="get" class="filter-bar" action="/campaigns">
+    <label>Brand
+      <select name="brand" onchange="this.form.submit()">
+        <option value="">All brands</option>
+        <% for (const b of brands) { %>
+          <option value="<%= b.brand_id %>" <%= selectedBrand === b.brand_id ? 'selected' : '' %>><%= b.name %></option>
+        <% } %>
+      </select>
+    </label>
+  </form>
   <div class="panel">
     <table>
       <thead>
         <tr>
           <th>Role</th>
+          <th>Brand</th>
           <th>Department</th>
           <th>Status</th>
           <th>Opened</th>
@@ -21,11 +32,12 @@
       </thead>
       <tbody>
         <% if (campaigns.length === 0) { %>
-          <tr><td colspan="6" class="muted">No campaigns yet.</td></tr>
+          <tr><td colspan="7" class="muted">No campaigns yet.</td></tr>
         <% } %>
         <% for (const c of campaigns) { %>
           <tr>
             <td><a href="/campaigns/<%= c.campaign_id %>"><%= c.role_title %></a></td>
+            <td><%= c.brand_name %></td>
             <td><%= c.department_name %></td>
             <td><%= label('campaignStatus', c.status) %></td>
             <td><%= c.opened_date || '—' %></td>

@@ -56,6 +56,50 @@ export async function uploadCandidateFile(buffer: Buffer, originalFilename: stri
   });
 }
 
+/**
+ * Brand logos are public (`type: upload`). The apply page has no session and
+ * cannot fetch authenticated assets. CVs stay authenticated above.
+ */
+export async function uploadPublicImage(buffer: Buffer, originalFilename: string): Promise<UploadedFile> {
+  ensureConfigured();
+  const folder = config.cloudinary.folder as string;
+  const publicId = randomUUID();
+  return new Promise<UploadedFile>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { resource_type: 'image', type: 'upload', folder, public_id: publicId },
+      (error, result) => {
+        if (error || !result) return reject(error ?? new Error('Cloudinary upload failed'));
+        resolve({
+          publicId: result.public_id,
+          originalFilename,
+          bytes: result.bytes,
+          format: result.format,
+        });
+      }
+    );
+    stream.end(buffer);
+  });
+}
+
+/** Unsigned HTTPS URL for a public (`type: upload`) image. Not a signed download. */
+export function publicImageUrl(publicId: string): string {
+  ensureConfigured();
+  return cloudinary.url(publicId, {
+    resource_type: 'image',
+    type: 'upload',
+    secure: true,
+  });
+}
+
+export async function deletePublicImages(publicIds: string[]): Promise<void> {
+  ensureConfigured();
+  if (publicIds.length === 0) return;
+  await cloudinary.api.delete_resources(publicIds, {
+    resource_type: 'image',
+    type: 'upload',
+  });
+}
+
 export function signedFetchUrl(publicId: string, expiresInSeconds = 60): string {
   ensureConfigured();
   return cloudinary.utils.private_download_url(publicId, '', {

@@ -6,13 +6,17 @@ import {
   MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
   type CampaignStatus,
 } from '../constants';
-import { departmentExists } from '../departments/repository';
+import { getDepartment } from '../departments/repository';
 import { UserFacingError } from '../http/errors';
 import { jobDescriptionHasText } from '../html';
 
 export interface CampaignRow {
   campaign_id: string;
   role_title: string;
+  brand_id: string;
+  brand_name: string;
+  apply_page_title: string;
+  logo_public_id: string | null;
   department_id: string;
   department_name: string;
   job_description: string;
@@ -40,17 +44,23 @@ export interface CampaignQuestionRow {
 }
 
 const CAMPAIGN_SELECT = `
-  SELECT c.*, d.name AS department_name
+  SELECT c.*, d.name AS department_name,
+         b.name AS brand_name, b.apply_page_title, b.logo_public_id
     FROM campaign c
     JOIN department d ON d.department_id = c.department_id
+    JOIN brand b ON b.brand_id = c.brand_id
 `;
 
-export async function listCampaigns(): Promise<CampaignRow[]> {
+export async function listCampaigns(brandId?: string): Promise<CampaignRow[]> {
+  const params: string[] = [];
+  const where = brandId ? (params.push(brandId), 'WHERE c.brand_id = $1') : '';
   const { rows } = await pool.query<CampaignRow>(
     `${CAMPAIGN_SELECT}
+      ${where}
       ORDER BY CASE c.status WHEN 'open' THEN 0 WHEN 'on_hold' THEN 1 ELSE 2 END,
                c.opened_date DESC NULLS LAST,
-               c.role_title ASC`
+               c.role_title ASC`,
+    params
   );
   return rows;
 }
@@ -72,6 +82,7 @@ export async function getOpenCampaignBySlug(slug: string): Promise<CampaignRow |
 
 export interface CampaignInput {
   roleTitle: string;
+  brandId: string;
   departmentId: string;
   jobDescription: string;
   positionsOpen: number;
@@ -88,13 +99,14 @@ export async function createCampaign(input: CampaignInput): Promise<CampaignRow>
   const slug = await uniqueSlug(input.publicSlug);
   const { rows } = await pool.query<CampaignRow>(
     `INSERT INTO campaign (
-       role_title, department_id, job_description, positions_open,
+       role_title, brand_id, department_id, job_description, positions_open,
        salary_band_min, salary_band_max, show_salary_publicly,
        status, opened_date, closed_date, public_slug
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,'open',$8,NULL,$9)
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'open',$9,NULL,$10)
      RETURNING campaign_id`,
     [
       input.roleTitle,
+      input.brandId,
       input.departmentId,
       input.jobDescription,
       input.positionsOpen,
@@ -252,8 +264,12 @@ async function validate(input: CampaignInput): Promise<void> {
   if (!Number.isInteger(input.positionsOpen) || input.positionsOpen < 1) {
     throw new Error('Positions open must be at least 1');
   }
-  if (!(await departmentExists(input.departmentId))) {
-    throw new Error('Select a department from the list');
+  const department = await getDepartment(input.departmentId);
+  if (!department) {
+    throw new UserFacingError('Select a department from the list.');
+  }
+  if (department.brand_id !== input.brandId) {
+    throw new UserFacingError('That department does not belong to the selected brand.');
   }
 }
 

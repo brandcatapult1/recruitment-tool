@@ -35,6 +35,7 @@ function asArray(value: unknown): string[] {
 
 export interface ParsedCampaignForm {
   roleTitle: string;
+  brandId: string;
   departmentId: string;
   jobDescription: string;
   positionsOpen: number;
@@ -50,6 +51,7 @@ export function parseCampaignForm(
   mode: 'create' | 'edit'
 ): ParsedCampaignForm | { error: string } {
   const roleTitle = String(body.role_title ?? '').trim();
+  const brandId = String(body.brand_id ?? '').trim();
   const departmentId = String(body.department_id ?? '').trim();
   const jobDescription = sanitizeJobDescription(String(body.job_description ?? ''));
   const positionsOpen = Number(body.positions_open ?? 1);
@@ -62,6 +64,10 @@ export function parseCampaignForm(
   const publicSlug = String(body.public_slug ?? '').trim();
 
   if (!roleTitle) return { error: 'Role title is required.' };
+  if (mode === 'create') {
+    if (!brandId) return { error: 'Select a brand.' };
+    if (!/^[0-9a-f-]{36}$/i.test(brandId)) return { error: 'Select a brand from the list.' };
+  }
   if (!departmentId) return { error: 'Select a department.' };
   if (!/^[0-9a-f-]{36}$/i.test(departmentId)) {
     return { error: 'Select a department from the list.' };
@@ -82,6 +88,7 @@ export function parseCampaignForm(
 
   return {
     roleTitle,
+    brandId,
     departmentId,
     jobDescription,
     positionsOpen,
@@ -110,8 +117,9 @@ export function parseQuestionBuilderForm(
 
 export function parseDepartmentForm(
   body: Record<string, unknown>
-): { name: string; screeningQualifiers: string[]; feedbackDimensions: string[] } | { error: string } {
+): { name: string; brandId: string; screeningQualifiers: string[]; feedbackDimensions: string[] } | { error: string } {
   const name = String(body.name ?? '').trim();
+  const brandId = String(body.brand_id ?? '').trim();
   const screeningQualifiers = [
     String(body.qualifier_1 ?? '').trim(),
     String(body.qualifier_2 ?? '').trim(),
@@ -123,7 +131,7 @@ export function parseDepartmentForm(
     String(body.dimension_4 ?? '').trim(),
   ].filter(Boolean);
   if (!name) return { error: 'Department name is required.' };
-  return { name, screeningQualifiers, feedbackDimensions };
+  return { name, brandId, screeningQualifiers, feedbackDimensions };
 }
 
 export function parseDepartmentQuestionBuilder(

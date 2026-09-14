@@ -11,7 +11,7 @@
 <div class="page-head">
   <div>
     <h1 class="page-title"><%= department.name %></h1>
-    <p class="page-sub">Department · <%= department.active ? 'Active' : 'Inactive' %></p>
+    <p class="page-sub"><%= department.brand_name %> · <%= department.active ? 'Active' : 'Inactive' %></p>
   </div>
   <div class="form-row">
     <a class="btn-secondary" href="/departments/<%= department.department_id %>/edit">Edit department</a>

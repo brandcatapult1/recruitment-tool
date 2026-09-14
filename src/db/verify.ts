@@ -13,6 +13,7 @@ import { pool } from './pool';
 
 const EXPECTED_TABLES = [
   // The eight entities of PRD §5
+  'brand',
   'person',
   'campaign',
   'campaign_question',
@@ -68,7 +69,23 @@ export async function verifySchema(): Promise<void> {
     throw new Error('[verify] campaign_question unique pair constraint is missing');
   }
 
+  const { rows: brandCols } = await pool.query<{ table_name: string }>(
+    `SELECT table_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND column_name = 'brand_id'
+        AND table_name IN ('campaign', 'department')`
+  );
+  if (brandCols.length < 2) {
+    throw new Error('[verify] campaign.brand_id and department.brand_id are required');
+  }
+
+  const { rows: sameBrand } = await pool.query(
+    `SELECT 1 FROM pg_trigger WHERE tgname = 'campaign_department_same_brand' AND NOT tgisinternal`
+  );
+  if (sameBrand.length === 0) {
+    throw new Error('[verify] campaign_department_same_brand trigger is missing');
+  }
+
   console.log(
-    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique`
+    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign and department`
   );
 }
