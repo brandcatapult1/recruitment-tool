@@ -20,7 +20,7 @@
         <tr class="<%= member.active ? '' : 'inactive' %>">
           <td><%= member.name %></td>
           <td><%= member.department || '—' %></td>
-          <td><%= member.system_role %></td>
+          <td><%= label('role', member.system_role) %></td>
           <td><%= member.email || '—' %></td>
           <td><%= member.active ? 'Active' : 'Deactivated' %></td>
           <td class="actions">

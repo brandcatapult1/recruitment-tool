@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HR Pulse — design preview (copied from PR Pulse)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /*
+      Copied from PR Pulse — not approximated.
+      Sources:
+        web/tailwind.config.js
+        web/src/index.css  (.campaign-glass-tile, .btn-primary, .btn-secondary, .input-field, .panel, .page-title, .page-sub)
+        web/src/components/layout/AppShell.jsx  (h-12 header, px-5, text-sm nav)
+        web/src/components/layout/NavSidebarContent.jsx  (nav link: rounded-md px-2.5 py-2 text-sm; active bg-brand-soft text-brand)
+        web/src/components/ui/DataKit.jsx  (table: text-sm, thead bg-canvas/60, th text-2xs uppercase tracking-wide text-ink-tertiary, td px-4 py-2.5)
+        web/src/pages/CampaignsPage.jsx  (error banner)
+        web/src/pages/CampaignViewPage.jsx  (CampaignAuroraBackground)
+        web/src/lib/format.jsx  (Pill tone=success → bg-teal-50 text-teal-700)
+        web/index.html  (Inter)
+      Tailwind 3 defaults used by those classes:
+        rounded-md 0.375rem, rounded-lg 0.5rem, rounded-xl 0.75rem
+        h-8 2rem, h-12 3rem, px-2.5 0.625rem, px-3 0.75rem, px-4 1rem, px-5 1.25rem
+        py-2 0.5rem, py-2.5 0.625rem, p-4 1rem
+        text-sm 0.875rem/1.25rem, font-medium 500, font-semibold 600
+        tracking-tight -0.025em, tracking-wide 0.025em
+        backdrop-blur-md 12px
+        zinc-800 #27272a, zinc-50 #fafafa
+        red-50 #fef2f2, red-200 #fecaca, red-800 #991b1b
+        teal-50 #f0fdfa, teal-200 #99f6e4, teal-700 #0f766e, teal-800 #115e59
+        violet-200 #ddd6fe, orange-100 #ffedd5, teal-100 #ccfbf1
+    */
+
+    :root {
+      --canvas: #f4f5f8;
+      --ink: #1a1d26;
+      --ink-secondary: #5c6370;
+      --ink-tertiary: #8b919a;
+      --line: #e8eaef;
+      --brand: #5e6ad2;
+      --brand-hover: #4f5abf;
+      --brand-soft: #eef0fb;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* CampaignViewPage CampaignAuroraBackground */
+    .page {
+      position: relative;
+      min-height: 100vh;
+      padding: 1.25rem; /* AppShell main md:p-5 */
+    }
+    .aurora {
+      pointer-events: none;
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .aurora-base {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom right, rgba(247,245,250,0.9), rgba(243,245,248,0.85), rgba(240,246,244,0.9));
+    }
+    .aurora-v {
+      position: absolute;
+      left: -5rem; top: -6rem;
+      height: 420px; width: 420px;
+      border-radius: 9999px;
+      background: rgba(221, 214, 254, 0.3); /* violet-200/30 */
+      filter: blur(120px);
+    }
+    .aurora-o {
+      position: absolute;
+      right: -3rem; top: 8%;
+      height: 360px; width: 360px;
+      border-radius: 9999px;
+      background: rgba(255, 237, 213, 0.25); /* orange-100/25 */
+      filter: blur(120px);
+    }
+    .aurora-t {
+      position: absolute;
+      bottom: -8%; left: 20%;
+      height: 340px; width: 340px;
+      border-radius: 9999px;
+      background: rgba(204, 251, 241, 0.22); /* teal-100/22 */
+      filter: blur(120px);
+    }
+
+    .shell { position: relative; z-index: 10; max-width: 72rem; margin: 0 auto; }
+
+    /* .campaign-glass-tile  — index.css */
+    .campaign-glass-tile {
+      border-radius: 0.75rem;
+      border: 1px solid #fff;
+      background: rgba(255, 255, 255, 0.93);
+      box-shadow:
+        0 4px 16px rgba(26, 29, 38, 0.06),
+        0 1px 3px rgba(26, 29, 38, 0.04),
+        0 0 0 1px rgba(255, 255, 255, 0.78) inset;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* AppShell header geometry + glass tile (approved: top nav, not sidebar) */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      height: 3rem;
+      padding: 0 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .brand {
+      font-size: 0.875rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .nav { display: flex; align-items: center; gap: 0.125rem; }
+    /* NavSidebarContent DESKTOP_LINK */
+    .nav a {
+      display: block;
+      border-radius: 0.375rem;
+      padding: 0.5rem 0.625rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+      color: var(--ink-secondary);
+      text-decoration: none;
+    }
+    .nav a:hover { background: var(--canvas); color: var(--ink); }
+    .nav a.active {
+      background: var(--brand-soft);
+      font-weight: 500;
+      color: var(--brand);
+    }
+    .who {
+      margin-left: auto;
+      font-size: 0.875rem;
+      color: var(--ink-secondary);
+    }
+
+    /* PageHeader */
+    .page-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .page-sub {
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      color: var(--ink-secondary);
+      margin: 0.125rem 0 0;
+    }
+    .page-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    /* GlassSectionCard: GlassTile + p-4 */
+    .card { padding: 1rem; }
+
+    /* CampaignsPage error / success (same shape; success uses Pill success teal) */
+    .banner {
+      border-radius: 0.5rem;
+      border: 1px solid #99f6e4;
+      background: #f0fdfa;
+      padding: 0.75rem 1rem;
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      color: #115e59;
+      margin: 0 0 1rem;
+    }
+    .banner.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    /* .panel wrapping DataTable */
+    .panel {
+      border-radius: 0.5rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      overflow: hidden;
+      margin: 0.75rem 0 1rem;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem; }
+    thead tr {
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 245, 248, 0.6);
+    }
+    th {
+      padding: 0.625rem 1rem;
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.025em;
+      text-transform: uppercase;
+      color: var(--ink-tertiary);
+    }
+    td {
+      padding: 0.625rem 1rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+      color: var(--ink);
+      border-bottom: 1px solid rgba(232, 234, 239, 0.8);
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: rgba(238, 240, 251, 0.4); }
+    .type { color: var(--ink-secondary); }
+
+    /* .input-field */
+    .input-field {
+      height: 2rem;
+      width: 72px;
+      border-radius: 0.375rem;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 0 0.75rem;
+      font-size: 0.875rem;
+      line-height: 1.25rem;
+      color: var(--ink);
+      outline: none;
+      font-family: inherit;
+    }
+    .input-field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
+    }
+    .input-full { width: 100%; max-width: 20rem; }
+
+    /* .btn-primary / .btn-secondary */
+    .btn-primary, .btn-secondary {
+      display: inline-flex;
+      height: 2rem;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.375rem;
+      padding: 0 0.75rem;
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 150ms, border-color 150ms, color 150ms;
+    }
+    .btn-primary {
+      background: var(--ink);
+      color: #fff;
+      border: 0;
+    }
+    .btn-primary:hover { background: #27272a; }
+    .btn-secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-secondary:hover { background: #fafafa; }
+
+    .form-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+    label.field {
+      display: block;
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      color: var(--ink-secondary);
+      margin: 0 0 1rem;
+    }
+    label.field .input-field { display: block; margin-top: 0.25rem; }
+    input[type="checkbox"] { accent-color: var(--brand); }
+
+    .note {
+      font-size: 0.6875rem;
+      line-height: 1rem;
+      color: var(--ink-tertiary);
+      margin: 0 0 1.5rem;
+    }
+    h2.section {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ink-tertiary);
+      margin: 0 0 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="aurora" aria-hidden="true">
+      <div class="aurora-base"></div>
+      <div class="aurora-v"></div>
+      <div class="aurora-o"></div>
+      <div class="aurora-t"></div>
+    </div>
+    <div class="shell">
+      <p class="note">Preview only — styles copied from PR Pulse. Public apply page is exempt. Not wired into HR Pulse yet.</p>
+
+      <header class="topbar campaign-glass-tile">
+        <a class="brand" href="#">Brand Catapult — HR Pulse</a>
+        <nav class="nav">
+          <a href="#">Home</a>
+          <a href="#">Campaigns</a>
+          <a href="#">Questions</a>
+          <a class="active" href="#">Departments</a>
+          <a href="#">Staff</a>
+        </nav>
+        <span class="who">Dhruv · Admin</span>
+      </header>
+
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Creative &amp; Copy</h1>
+          <p class="page-sub">Department · Active</p>
+        </div>
+        <div class="form-row">
+          <a class="btn-secondary" href="#">Edit department</a>
+          <button type="button" class="btn-primary">Save questions</button>
+        </div>
+      </div>
+
+      <section class="card campaign-glass-tile">
+        <div class="banner" role="status">Questions saved.</div>
+
+        <h2 class="section">Apply-page questions</h2>
+        <p class="page-sub" style="margin-bottom: 12px">Up to 3. Single choice, multiple choice or number only.</p>
+
+        <div class="panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Include</th>
+                <th>Question</th>
+                <th>Order</th>
+                <th>Required</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><input type="checkbox" checked></td>
+                <td>Which craft are you strongest in? <span class="type">Single choice</span></td>
+                <td><input class="input-field" type="number" value="1"></td>
+                <td><input type="checkbox" checked></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" checked></td>
+                <td>Years writing for brands <span class="type">Number</span></td>
+                <td><input class="input-field" type="number" value="2"></td>
+                <td><input type="checkbox"></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" checked></td>
+                <td>Formats you ship regularly <span class="type">Multiple choice</span></td>
+                <td><input class="input-field" type="number" value="3"></td>
+                <td><input type="checkbox"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <label class="field">Role title
+          <input class="input-field input-full" type="text" value="Senior copywriter">
+        </label>
+        <div class="form-row">
+          <button type="button" class="btn-primary">Save questions</button>
+          <button type="button" class="btn-secondary">Cancel</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

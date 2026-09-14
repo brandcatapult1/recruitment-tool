@@ -4,6 +4,7 @@ import {
   MAX_DEPARTMENT_APPLY_QUESTIONS,
   type QuestionType,
 } from '../constants';
+import { UserFacingError } from '../http/errors';
 
 export interface DepartmentRow {
   department_id: string;
@@ -116,13 +117,13 @@ export async function replaceDepartmentQuestions(
   items: DepartmentQuestionInput[]
 ): Promise<void> {
   if (items.length > MAX_DEPARTMENT_APPLY_QUESTIONS) {
-    throw new Error(
-      `A department can have at most ${MAX_DEPARTMENT_APPLY_QUESTIONS} apply questions (the 16-question cap).`
+    throw new UserFacingError(
+      `A department can have at most ${MAX_DEPARTMENT_APPLY_QUESTIONS} apply questions.`
     );
   }
   const seen = new Set<string>();
   for (const item of items) {
-    if (seen.has(item.questionId)) throw new Error('A question can only appear once');
+    if (seen.has(item.questionId)) throw new UserFacingError('A question can only appear once');
     seen.add(item.questionId);
   }
 
@@ -133,8 +134,8 @@ export async function replaceDepartmentQuestions(
     );
     for (const row of rows) {
       if (!(DEPARTMENT_APPLY_QUESTION_TYPES as readonly string[]).includes(row.type)) {
-        throw new Error(
-          'Department apply questions must be select, multi-select or number. Free text is not permitted at this tier.'
+        throw new UserFacingError(
+          'Department apply questions must be single choice, multiple choice or number. Free text is not permitted at this tier.'
         );
       }
     }

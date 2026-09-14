@@ -12,7 +12,7 @@
     <h1><%= campaign.role_title %></h1>
     <p class="dept"><%= campaign.department_name %></p>
 
-    <section class="jd"><%= campaign.job_description %></section>
+    <section class="jd"><%- jobDescriptionHtml %></section>
 
     <% if (campaign.show_salary_publicly && (campaign.salary_band_min || campaign.salary_band_max)) { %>
       <p class="salary">Salary band:
@@ -24,14 +24,6 @@
           up to <%= campaign.salary_band_max %>
         <% } %>
       </p>
-    <% } %>
-
-    <% if (campaign.process_description) { %>
-      <h2>The process</h2>
-      <p><%= campaign.process_description %></p>
-    <% } %>
-    <% if (campaign.expected_timeline) { %>
-      <p class="timeline"><%= campaign.expected_timeline %></p>
     <% } %>
 
     <% if (error) { %><p class="error"><%= error %></p><% } %>
@@ -101,7 +93,7 @@
 
       <div class="consent">
         <p>By submitting, you agree that Brand Catapult can use these details to consider you for this role and related openings, and to contact you about them. We keep applications for 24 months.</p>
-        <p>We’ll be in touch if there’s a next step. <%= campaign.expected_timeline || '' %></p>
+        <p>We’ll be in touch if there’s a next step.</p>
       </div>
       <button type="submit" class="submit" id="submit-btn">Submit application</button>
     </form>

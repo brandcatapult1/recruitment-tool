@@ -2,8 +2,6 @@ import { Router } from 'express';
 import { requireLogin, sessionUser } from '../auth/middleware';
 import {
   CAMPAIGN_STATUSES,
-  DEFAULT_EXPECTED_TIMELINE,
-  DEFAULT_PROCESS_DESCRIPTION,
   FREE_TEXT_QUESTION_TYPES,
   MAX_CAMPAIGN_APPLY_QUESTIONS,
   MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
@@ -18,10 +16,13 @@ import {
   listCampaignQuestions,
   replaceCampaignQuestions,
   slugify,
+  type CampaignRow,
 } from '../campaigns/repository';
 import { listActiveDepartments, getDepartment, listDepartmentQuestions } from '../departments/repository';
 import { listQuestions } from '../questions/repository';
 import { applyUrl, sourceVariantLinks } from '../campaigns/links';
+import { isUserFacingError } from '../http/errors';
+import { setFlash } from '../http/flash';
 
 export const campaignsRouter = Router();
 
@@ -31,14 +32,40 @@ async function formLocals(req: ExpressRequest, extras: Record<string, unknown>) 
   return {
     statuses: CAMPAIGN_STATUSES,
     departments: await listActiveDepartments(),
-    defaultProcess: DEFAULT_PROCESS_DESCRIPTION,
-    defaultTimeline: DEFAULT_EXPECTED_TIMELINE,
     user: sessionUser(req),
     ...extras,
   };
 }
 
 type ExpressRequest = import('express').Request;
+
+async function campaignShowLocals(req: ExpressRequest, campaign: CampaignRow, extras: Record<string, unknown> = {}) {
+  const department = await getDepartment(campaign.department_id);
+  const departmentQuestions = department
+    ? await listDepartmentQuestions(department.department_id)
+    : [];
+  const attached = await listCampaignQuestions(campaign.campaign_id);
+  const attachedIds = new Set(attached.map((q) => q.question_id));
+  const bank = await listQuestions(true);
+  const selectable = bank.filter((q) => q.active || attachedIds.has(q.question_id));
+  return {
+    title: campaign.role_title,
+    campaign,
+    department,
+    departmentQuestions,
+    attached,
+    selectable,
+    stages: PIPELINE_STAGES,
+    applyUrl: applyUrl(campaign.public_slug),
+    sourceLinks: sourceVariantLinks(campaign.public_slug),
+    freeTextTypes: FREE_TEXT_QUESTION_TYPES,
+    maxCampaignQuestions: MAX_CAMPAIGN_APPLY_QUESTIONS,
+    maxFreeText: MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
+    user: sessionUser(req),
+    error: null as string | null,
+    ...extras,
+  };
+}
 
 campaignsRouter.get('/', async (req, res, next) => {
   try {
@@ -59,8 +86,6 @@ campaignsRouter.get('/new', async (req, res, next) => {
         campaign: {
           positions_open: 1,
           show_salary_publicly: true,
-          process_description: DEFAULT_PROCESS_DESCRIPTION,
-          expected_timeline: DEFAULT_EXPECTED_TIMELINE,
         },
         error: null,
       })
@@ -101,29 +126,7 @@ campaignsRouter.get('/:campaignId', async (req, res, next) => {
     if (!campaign) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    const department = await getDepartment(campaign.department_id);
-    const departmentQuestions = department
-      ? await listDepartmentQuestions(department.department_id)
-      : [];
-    const attached = await listCampaignQuestions(campaign.campaign_id);
-    const attachedIds = new Set(attached.map((q) => q.question_id));
-    const bank = await listQuestions(true);
-    const selectable = bank.filter((q) => q.active || attachedIds.has(q.question_id));
-    res.render('campaigns/show', {
-      title: campaign.role_title,
-      campaign,
-      department,
-      departmentQuestions,
-      attached,
-      selectable,
-      stages: PIPELINE_STAGES,
-      applyUrl: applyUrl(campaign.public_slug),
-      sourceLinks: sourceVariantLinks(campaign.public_slug),
-      freeTextTypes: FREE_TEXT_QUESTION_TYPES,
-      maxCampaignQuestions: MAX_CAMPAIGN_APPLY_QUESTIONS,
-      maxFreeText: MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
-      user: sessionUser(req),
-    });
+    res.render('campaigns/show', await campaignShowLocals(req, campaign));
   } catch (err) {
     next(err);
   }
@@ -185,8 +188,20 @@ campaignsRouter.post('/:campaignId/questions', async (req, res, next) => {
     if (!campaign) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    await replaceCampaignQuestions(campaign.campaign_id, parseQuestionBuilderForm(req.body));
-    res.redirect(`/campaigns/${campaign.campaign_id}`);
+    try {
+      await replaceCampaignQuestions(campaign.campaign_id, parseQuestionBuilderForm(req.body));
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      return res.status(400).render(
+        'campaigns/show',
+        await campaignShowLocals(req, campaign, { error: err.message })
+      );
+    }
+    setFlash(req, { type: 'success', message: 'Questions saved.' });
+    req.session.save((saveErr) => {
+      if (saveErr) return next(saveErr);
+      res.redirect(`/campaigns/${campaign.campaign_id}`);
+    });
   } catch (err) {
     next(err);
   }

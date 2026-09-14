@@ -1,4 +1,5 @@
 import { QUESTION_TYPES, type QuestionType } from '../constants';
+import { jobDescriptionHasText, sanitizeJobDescription } from '../html';
 
 export function parseQuestionForm(
   body: Record<string, unknown>
@@ -17,7 +18,7 @@ export function parseQuestionForm(
   }
   const needsOptions = type === 'select' || type === 'multi_select';
   if (needsOptions && options.length === 0) {
-    return { error: 'Select and multi-select questions need at least one option (one per line).' };
+    return { error: 'Single choice and Multiple choice questions need at least one option (one per line).' };
   }
   return {
     text,
@@ -42,8 +43,6 @@ export interface ParsedCampaignForm {
   showSalaryPublicly: boolean;
   status: 'open' | 'on_hold' | 'closed';
   publicSlug: string;
-  processDescription: string | null;
-  expectedTimeline: string | null;
 }
 
 export function parseCampaignForm(
@@ -52,7 +51,7 @@ export function parseCampaignForm(
 ): ParsedCampaignForm | { error: string } {
   const roleTitle = String(body.role_title ?? '').trim();
   const departmentId = String(body.department_id ?? '').trim();
-  const jobDescription = String(body.job_description ?? '').trim();
+  const jobDescription = sanitizeJobDescription(String(body.job_description ?? ''));
   const positionsOpen = Number(body.positions_open ?? 1);
   const salaryBandMin =
     body.salary_band_min === '' || body.salary_band_min == null ? null : Number(body.salary_band_min);
@@ -61,15 +60,13 @@ export function parseCampaignForm(
   const showSalaryPublicly = String(body.show_salary_publicly ?? '') === 'true';
   const status = mode === 'create' ? 'open' : String(body.status ?? 'open');
   const publicSlug = String(body.public_slug ?? '').trim();
-  const processDescription = String(body.process_description ?? '').trim() || null;
-  const expectedTimeline = String(body.expected_timeline ?? '').trim() || null;
 
   if (!roleTitle) return { error: 'Role title is required.' };
   if (!departmentId) return { error: 'Select a department.' };
   if (!/^[0-9a-f-]{36}$/i.test(departmentId)) {
     return { error: 'Select a department from the list.' };
   }
-  if (!jobDescription) return { error: 'Job description is required.' };
+  if (!jobDescriptionHasText(jobDescription)) return { error: 'Job description is required.' };
   if (!Number.isInteger(positionsOpen) || positionsOpen < 1) {
     return { error: 'Positions open must be a whole number of at least 1.' };
   }
@@ -93,8 +90,6 @@ export function parseCampaignForm(
     showSalaryPublicly,
     status: status as ParsedCampaignForm['status'],
     publicSlug,
-    processDescription,
-    expectedTimeline,
   };
 }
 

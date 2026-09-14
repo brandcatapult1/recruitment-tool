@@ -7,6 +7,8 @@ import {
   type CampaignStatus,
 } from '../constants';
 import { departmentExists } from '../departments/repository';
+import { UserFacingError } from '../http/errors';
+import { jobDescriptionHasText } from '../html';
 
 export interface CampaignRow {
   campaign_id: string;
@@ -22,8 +24,6 @@ export interface CampaignRow {
   opened_date: string | null;
   closed_date: string | null;
   public_slug: string;
-  process_description: string | null;
-  expected_timeline: string | null;
 }
 
 export interface CampaignQuestionRow {
@@ -81,8 +81,6 @@ export interface CampaignInput {
   status: CampaignStatus;
   openedDate: string | null;
   publicSlug: string;
-  processDescription: string | null;
-  expectedTimeline: string | null;
 }
 
 export async function createCampaign(input: CampaignInput): Promise<CampaignRow> {
@@ -92,9 +90,8 @@ export async function createCampaign(input: CampaignInput): Promise<CampaignRow>
     `INSERT INTO campaign (
        role_title, department_id, job_description, positions_open,
        salary_band_min, salary_band_max, show_salary_publicly,
-       status, opened_date, closed_date, public_slug,
-       process_description, expected_timeline
-     ) VALUES ($1,$2,$3,$4,$5,$6,$7,'open',$8,NULL,$9,$10,$11)
+       status, opened_date, closed_date, public_slug
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,'open',$8,NULL,$9)
      RETURNING campaign_id`,
     [
       input.roleTitle,
@@ -106,8 +103,6 @@ export async function createCampaign(input: CampaignInput): Promise<CampaignRow>
       input.showSalaryPublicly,
       input.openedDate,
       slug,
-      input.processDescription,
-      input.expectedTimeline,
     ]
   );
   const created = await getCampaign(rows[0].campaign_id);
@@ -134,7 +129,7 @@ export async function updateCampaign(
        role_title = $2, department_id = $3, job_description = $4,
        positions_open = $5, salary_band_min = $6, salary_band_max = $7,
        show_salary_publicly = $8, status = $9, closed_date = $10,
-       public_slug = $11, process_description = $12, expected_timeline = $13
+       public_slug = $11
      WHERE campaign_id = $1`,
     [
       campaignId,
@@ -148,8 +143,6 @@ export async function updateCampaign(
       input.status,
       closedDate,
       slug,
-      input.processDescription,
-      input.expectedTimeline,
     ]
   );
   return getCampaign(campaignId);
@@ -179,13 +172,15 @@ export async function replaceCampaignQuestions(
   items: CampaignQuestionInput[]
 ): Promise<void> {
   if (items.length > MAX_CAMPAIGN_APPLY_QUESTIONS) {
-    throw new Error(
-      `A campaign can have at most ${MAX_CAMPAIGN_APPLY_QUESTIONS} apply questions (the 16-question cap).`
+    throw new UserFacingError(
+      `A campaign can have at most ${MAX_CAMPAIGN_APPLY_QUESTIONS} apply questions.`
     );
   }
   const seen = new Set<string>();
   for (const item of items) {
-    if (seen.has(item.questionId)) throw new Error('A question can only appear once on a campaign');
+    if (seen.has(item.questionId)) {
+      throw new UserFacingError('A question can only appear once on a campaign');
+    }
     seen.add(item.questionId);
   }
 
@@ -198,7 +193,7 @@ export async function replaceCampaignQuestions(
       (FREE_TEXT_QUESTION_TYPES as readonly string[]).includes(r.type)
     );
     if (freeText.length > MAX_CAMPAIGN_FREE_TEXT_QUESTIONS) {
-      throw new Error(
+      throw new UserFacingError(
         `A campaign can have at most ${MAX_CAMPAIGN_FREE_TEXT_QUESTIONS} free-text questions.`
       );
     }
@@ -250,7 +245,7 @@ async function uniqueSlug(desired: string, exceptCampaignId?: string): Promise<s
 
 async function validate(input: CampaignInput): Promise<void> {
   if (!input.roleTitle.trim()) throw new Error('Role title is required');
-  if (!input.jobDescription.trim()) throw new Error('Job description is required');
+  if (!jobDescriptionHasText(input.jobDescription)) throw new Error('Job description is required');
   if (!(CAMPAIGN_STATUSES as readonly string[]).includes(input.status)) {
     throw new Error('Select a valid status');
   }

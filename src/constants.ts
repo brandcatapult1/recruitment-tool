@@ -191,9 +191,5 @@ export const UNIVERSAL_APPLY_QUESTION_COUNT = 10;
 export const MAX_VISIBLE_APPLY_QUESTIONS = 16;
 export const FREE_TEXT_CHAR_LIMIT = 500;
 
-export const DEFAULT_PROCESS_DESCRIPTION =
-  'We review every application, then speak with people who look like a fit. Some roles include a short assignment. Interviews are with the hiring department.';
-export const DEFAULT_EXPECTED_TIMELINE = "You'll hear from us within 3 working days.";
-
 export const PRODUCT_NAME = 'HR Pulse';
 export const PRODUCT_FULL_NAME = 'Brand Catapult — HR Pulse';

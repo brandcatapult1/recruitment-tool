@@ -9,6 +9,7 @@ declare module 'express-session' {
     staffId?: string;
     role?: LoginRole;
     name?: string;
+    flash?: { type: 'success' | 'error'; message: string };
   }
 }
 

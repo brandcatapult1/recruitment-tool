@@ -22,7 +22,7 @@
       <% for (const q of questions) { %>
         <tr class="<%= q.active ? '' : 'inactive' %>">
           <td><%= q.text %></td>
-          <td><%= q.type %></td>
+          <td><%= label('questionType', q.type) %></td>
           <td><%= q.active ? 'Active' : 'Inactive' %></td>
           <td class="actions">
             <a href="/questions/<%= q.question_id %>/edit">Edit</a>

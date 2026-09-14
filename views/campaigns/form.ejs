@@ -33,7 +33,7 @@
         <label>Status
           <select name="status">
             <% for (const s of statuses) { %>
-              <option value="<%= s %>" <%= field('status', 'open') === s ? 'selected' : '' %>><%= s %></option>
+              <option value="<%= s %>" <%= field('status', 'open') === s ? 'selected' : '' %>><%= label('campaignStatus', s) %></option>
             <% } %>
           </select>
         </label>
@@ -50,13 +50,8 @@
       Show salary band on the public apply page
     </label>
     <label>Job description
-      <textarea name="job_description" rows="8" required><%= field('job_description') %></textarea>
-    </label>
-    <label>Process description <span class="muted">(shown on the apply page)</span>
-      <textarea name="process_description" rows="3"><%= field('process_description', defaultProcess) %></textarea>
-    </label>
-    <label>Expected timeline
-      <input type="text" name="expected_timeline" value="<%= field('expected_timeline', defaultTimeline) %>">
+      <div id="jd-editor"></div>
+      <textarea name="job_description" id="jd-input" required rows="8"><%= field('job_description') %></textarea>
     </label>
     <label>Public URL slug <span class="muted">(leave blank to generate from the role title)</span>
       <input type="text" name="public_slug" value="<%= field('public_slug') %>" placeholder="senior-copywriter">
@@ -67,4 +62,40 @@
     </div>
   </form>
 </div>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script>
+(function () {
+  var input = document.getElementById('jd-input');
+  if (!input || typeof Quill === 'undefined') return;
+  var quill = new Quill('#jd-editor', {
+    theme: 'snow',
+    modules: {
+      toolbar: [
+        ['bold', 'italic'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ header: 2 }, { header: 3 }]
+      ]
+    }
+  });
+  input.hidden = true;
+  if (input.value) {
+    if (/<\/?[a-z][\s\S]*>/i.test(input.value)) {
+      quill.clipboard.dangerouslyPasteHTML(input.value);
+    } else {
+      quill.setText(input.value);
+    }
+  }
+  function sync() { input.value = quill.root.innerHTML; }
+  quill.on('text-change', sync);
+  input.closest('form').addEventListener('submit', function () {
+    sync();
+    if (!quill.getText().trim()) {
+      input.setCustomValidity('Job description is required.');
+    } else {
+      input.setCustomValidity('');
+    }
+  });
+})();
+</script>
 <%- include('../partials/footer') %>

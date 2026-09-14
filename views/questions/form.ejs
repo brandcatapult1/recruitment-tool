@@ -21,11 +21,11 @@
     <label>Type
       <select name="type" required>
         <% for (const t of types) { %>
-          <option value="<%= t %>" <%= currentType === t ? 'selected' : '' %>><%= t %></option>
+          <option value="<%= t %>" <%= currentType === t ? 'selected' : '' %>><%= label('questionType', t) %></option>
         <% } %>
       </select>
     </label>
-    <label>Options <span class="muted">(one per line; required for select and multi_select)</span>
+    <label>Options <span class="muted">(one per line; required for Single choice and Multiple choice)</span>
       <textarea name="options" rows="4"><%= optionsText %></textarea>
     </label>
     <div class="form-actions">

@@ -13,7 +13,7 @@
       <select name="system_role" required>
         <option value="" disabled <%= member ? '' : 'selected' %>>Select a role</option>
         <% for (const role of roles) { %>
-          <option value="<%= role %>" <%= member && member.system_role === role ? 'selected' : '' %>><%= role %></option>
+          <option value="<%= role %>" <%= member && member.system_role === role ? 'selected' : '' %>><%= label('role', role) %></option>
         <% } %>
       </select>
     </label>

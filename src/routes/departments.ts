@@ -10,13 +10,40 @@ import {
   setDepartmentActive,
   listDepartmentQuestions,
   replaceDepartmentQuestions,
+  type DepartmentRow,
 } from '../departments/repository';
 import { listQuestions } from '../questions/repository';
+import { isUserFacingError } from '../http/errors';
+import { setFlash } from '../http/flash';
 
 /** Department CRUD — Admin only (M1). Recruiters select from the list; they do not edit it. */
 export const departmentsRouter = Router();
 
 departmentsRouter.use(requireRole('admin'));
+
+async function departmentShowLocals(
+  req: import('express').Request,
+  department: DepartmentRow,
+  extras: Record<string, unknown> = {}
+) {
+  const attached = await listDepartmentQuestions(department.department_id);
+  const attachedIds = new Set(attached.map((q) => q.question_id));
+  const bank = await listQuestions(true);
+  const selectable = bank.filter(
+    (q) =>
+      (DEPARTMENT_APPLY_QUESTION_TYPES as readonly string[]).includes(q.type) &&
+      (q.active || attachedIds.has(q.question_id))
+  );
+  return {
+    title: department.name,
+    department,
+    attached,
+    selectable,
+    user: sessionUser(req),
+    error: null as string | null,
+    ...extras,
+  };
+}
 
 departmentsRouter.get('/', async (req, res, next) => {
   try {
@@ -60,21 +87,7 @@ departmentsRouter.get('/:departmentId', async (req, res, next) => {
     if (!department) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    const attached = await listDepartmentQuestions(department.department_id);
-    const attachedIds = new Set(attached.map((q) => q.question_id));
-    const bank = await listQuestions(true);
-    const selectable = bank.filter(
-      (q) =>
-        (DEPARTMENT_APPLY_QUESTION_TYPES as readonly string[]).includes(q.type) &&
-        (q.active || attachedIds.has(q.question_id))
-    );
-    res.render('departments/show', {
-      title: department.name,
-      department,
-      attached,
-      selectable,
-      user: sessionUser(req),
-    });
+    res.render('departments/show', await departmentShowLocals(req, department));
   } catch (err) {
     next(err);
   }
@@ -125,11 +138,23 @@ departmentsRouter.post('/:departmentId/questions', async (req, res, next) => {
     if (!department) {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
-    await replaceDepartmentQuestions(
-      department.department_id,
-      parseDepartmentQuestionBuilder(req.body)
-    );
-    res.redirect(`/departments/${department.department_id}`);
+    try {
+      await replaceDepartmentQuestions(
+        department.department_id,
+        parseDepartmentQuestionBuilder(req.body)
+      );
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      return res.status(400).render(
+        'departments/show',
+        await departmentShowLocals(req, department, { error: err.message })
+      );
+    }
+    setFlash(req, { type: 'success', message: 'Questions saved.' });
+    req.session.save((saveErr) => {
+      if (saveErr) return next(saveErr);
+      res.redirect(`/departments/${department.department_id}`);
+    });
   } catch (err) {
     next(err);
   }

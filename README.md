@@ -67,7 +67,7 @@ migration file; applied files are tracked by name in the `_migrations` table.
 | `migrations/0001_init.sql` | All eight tables per PRD §5, CHECK constraints mirroring §6, append-only trigger on `event`, session table. |
 | `migrations/0002_m1_campaign_setup.sql` | Unique campaign-question pairing, select-options check, campaign status index. |
 | `migrations/0003_m1_departments.sql` | Department table, seed list, campaign.department_id, job description, public salary flag. |
-| `migrations/0004_m2_apply.sql` | Apply capture fields, one application per person per campaign, honeypot audit log. |
+| `migrations/0005_drop_process_and_timeline.sql` | Drops campaign.process_description and campaign.expected_timeline. |
 | `src/snapshots.ts` | R5: build and read helpers. Qualifiers and dimensions come from the department. |
 | `src/campaigns/` | Campaign CRUD, source variant URLs (R6: unknown source → `other`). |
 | `src/departments/` | Admin-only department CRUD and apply-question builder. |
@@ -77,7 +77,7 @@ migration file; applied files are tracked by name in the `_migrations` table.
 | `src/db/migrate.ts` | Startup migration runner (idempotent, advisory-locked). |
 | `src/bootstrap.ts` | Startup first-admin creation (idempotent). |
 | `src/events.ts` | `writeEvent()` — the only path by which events are created. |
-| `src/files/cloudinary.ts` | Signed upload / authenticated delivery / deletion helpers per PRD §13.4. No UI yet. |
+| `src/files/cloudinary.ts` | Signed upload / authenticated delivery. Folder from `CLOUDINARY_FOLDER`. |
 | `src/auth/` | Email+password auth, Postgres-backed sessions, `requireLogin` / `requireRole` middleware. |
 | `src/staff/`, `src/routes/staff.ts` | Staff CRUD, Admin only. Deactivation preserves historical attribution. |
 | `src/routes/home.ts` | Home plus the Partner-only Leadership Overview route (dashboard itself is M8). |

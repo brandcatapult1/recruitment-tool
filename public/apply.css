@@ -14,7 +14,13 @@ body {
 h1 { font-size: 26px; line-height: 1.2; margin: 8px 0 4px; }
 h2 { font-size: 16px; margin: 28px 0 10px; }
 .dept, .timeline, .hint, .count { color: #667085; font-size: 14px; }
-.jd, .salary { margin: 16px 0; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
+.jd { margin: 16px 0; font-size: 16px; line-height: 1.5; }
+.jd p { margin: 0 0 10px; }
+.jd h2 { font-size: 18px; margin: 20px 0 8px; }
+.jd h3 { font-size: 16px; margin: 16px 0 8px; }
+.jd ul, .jd ol { margin: 8px 0 12px 1.25em; padding: 0; }
+.jd li { margin: 4px 0; }
+.salary { margin: 16px 0; font-size: 16px; line-height: 1.5; white-space: pre-wrap; }
 .error { color: #b42318; }
 label { display: block; margin: 16px 0; font-weight: 600; font-size: 14px; }
 label .hint { display: block; font-weight: 400; margin-top: 4px; }

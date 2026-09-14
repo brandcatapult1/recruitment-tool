@@ -14,17 +14,21 @@ import { departmentsRouter } from './routes/departments';
 import { applyRouter } from './routes/apply';
 import { filesRouter } from './routes/files';
 import { sessionUser } from './auth/middleware';
+import { flashMiddleware } from './http/flash';
+import { label } from './labels';
 
 const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.resolve(process.cwd(), 'views'));
+app.locals.label = label;
 if (config.isProduction) app.set('trust proxy', 1);
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use('/static', express.static(path.resolve(process.cwd(), 'public')));
 app.use(sessionMiddleware);
+app.use(flashMiddleware);
 
 app.use(authRouter);
 app.use(homeRouter);

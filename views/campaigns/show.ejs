@@ -15,12 +15,12 @@
     <h1><%= campaign.role_title %></h1>
     <a class="button primary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>
   </div>
-  <p class="muted"><%= campaign.department_name %> · <%= campaign.status %> · <%= campaign.positions_open %> open
+  <p class="muted"><%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
     · salary <%= campaign.show_salary_publicly ? 'public' : 'hidden' %></p>
 
   <h2>Pipeline stages</h2>
   <ol class="stage-preview">
-    <% for (const stage of stages) { %><li><%= stage %></li><% } %>
+    <% for (const stage of stages) { %><li><%= label('stage', stage) %></li><% } %>
   </ol>
   <p class="muted">Every campaign uses the same eight stages. Assignment is used per candidate when needed.</p>
 
@@ -35,19 +35,19 @@
       ? department.feedback_dimensions.join(' · ') : 'None' %></p>
   <% if (departmentQuestions.length) { %>
     <p><strong>Department apply questions:</strong></p>
-    <ul><% for (const q of departmentQuestions) { %><li><%= q.text %> <span class="muted"><%= q.type %></span></li><% } %></ul>
+    <ul><% for (const q of departmentQuestions) { %><li><%= q.text %> <span class="muted"><%= label('questionType', q.type) %></span></li><% } %></ul>
   <% } else { %>
     <p class="muted">No department apply questions yet.</p>
   <% } %>
 
   <h2>Apply links</h2>
-  <p class="muted">Each source has its own URL. A missing or mangled source still accepts the application, tagged <code>other</code>. Closed or on-hold campaigns 404 at these URLs.</p>
-  <p>Bare link (stamps <code>other</code>): <code><%= applyUrl %></code></p>
+  <p class="muted">Each source has its own URL. A missing or mangled source still accepts the application, tagged <%= label('source', 'other') %>. Closed or on-hold campaigns 404 at these URLs.</p>
+  <p>Bare link (stamps <%= label('source', 'other') %>): <code><%= applyUrl %></code></p>
   <table>
     <thead><tr><th>Source</th><th>URL</th></tr></thead>
     <tbody>
       <% for (const link of sourceLinks) { %>
-        <tr><td><%= link.source %></td><td><code><%= link.url %></code></td></tr>
+        <tr><td><%= label('source', link.source) %></td><td><code><%= link.url %></code></td></tr>
       <% } %>
     </tbody>
   </table>
@@ -55,6 +55,7 @@
   <h2>Campaign apply questions</h2>
   <p class="muted">Up to <%= maxCampaignQuestions %>. At most <%= maxFreeText %> may be free text (500 characters each).
     Knockout flags tag and triage only — they never auto-reject.</p>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/campaigns/<%= campaign.campaign_id %>/questions">
     <table>
       <thead>
@@ -73,7 +74,7 @@
         <% selectable.forEach((q, i) => { %>
           <tr class="<%= q.active ? '' : 'inactive' %>">
             <td><input type="checkbox" name="selected" value="<%= q.question_id %>" <%= attachedIds.has(q.question_id) ? 'checked' : '' %>></td>
-            <td><%= q.text %> <span class="muted"><%= q.type %><%= q.active ? '' : ' · inactive' %></span></td>
+            <td><%= q.text %> <span class="muted"><%= label('questionType', q.type) %><%= q.active ? '' : ' · inactive' %></span></td>
             <td><input type="number" name="order_<%= q.question_id %>" min="1" class="order-input" value="<%= orderById[q.question_id] || (i + 1) %>"></td>
             <td><input type="checkbox" name="required_<%= q.question_id %>" <%= requiredById[q.question_id] ? 'checked' : '' %>></td>
             <td><input type="checkbox" name="knockout_<%= q.question_id %>" <%= knockoutById[q.question_id] ? 'checked' : '' %>></td>

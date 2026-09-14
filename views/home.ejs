@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <div class="card">
   <h1>Home</h1>
-  <p>Signed in as <strong><%= user.name %></strong> (<%= user.role %>).</p>
+  <p>Signed in as <strong><%= user.name %></strong> (<%= label('role', user.role) %>).</p>
   <p class="muted">M0–M2 are in place. The candidate repository and pipeline board arrive in M3–M4.</p>
   <ul>
     <li><a href="/campaigns">Campaigns</a></li>

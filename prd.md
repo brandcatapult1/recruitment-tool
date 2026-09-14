@@ -132,7 +132,7 @@ The permanent asset. Nothing role-specific or campaign-specific lives here.
 | `campaign_id` | uuid, PK | |
 | `role_title` | string, required | |
 | `department_id` | uuid, FK → department, required | Dropdown only. Never free text. Qualifiers and feedback dimensions are inherited from here. |
-| `job_description` | text, required | The role description shown publicly on the apply page. |
+| `job_description` | text, required | The role description shown publicly on the apply page. Stored as a small HTML subset (bold, italic, lists, two heading levels). Sanitised with `sanitize-html` on save and again on public render. |
 | `positions_open` | integer, default 1 | |
 | `salary_band_min` | integer, nullable | |
 | `salary_band_max` | integer, nullable | |
@@ -141,8 +141,6 @@ The permanent asset. Nothing role-specific or campaign-specific lives here.
 | `opened_date` | date | |
 | `closed_date` | date, nullable | |
 | `public_slug` | string, unique | Drives the public URL |
-| `process_description` | text, nullable | Shown publicly on the apply page — what the hiring process involves, in plain language. Pre-filled with a default, editable. Not derived from stage names; internal stage labels are jargon. |
-| `expected_timeline` | string, nullable | Shown publicly on the apply page, e.g. "You'll hear from us within 3 working days." Pre-filled with a default, editable. |
 
 **Campaign creation rules.** `status` is always `open` at creation and is not on the create form. `closed_date` is set automatically when status changes to `closed`; it is never typed by hand. Screening qualifiers and feedback dimensions do not appear anywhere on the campaign form — they belong to the department (§5.10) and are inherited.
 
@@ -565,7 +563,7 @@ Questions requiring genuine analytical reasoning — case studies, positioning e
 **The 16-question cap is enforced in the form builder**, not advisory. Attempting to add a seventeenth is refused with an explanation, as is a third free-text question at campaign level or any free-text question at department level. Ten universal plus three department plus three campaign lands exactly on the cap. Without a hard stop this creeps back toward twenty fields within a year, and length is the single largest cause of drop-off.
 
 **Never ask on the apply page:** expected compensation (§5.4), photographs of the candidate (a barrier at the top of the funnel, and it invites bias into screening before any work has been evaluated), or file-naming conventions the candidate must follow — uploads are renamed automatically on ingest per §13.4.
-- Public display of: role title, department, the job description, salary band (when `show_salary_publicly` is true), the process steps, and expected timeline. This is a drop-off reduction measure, not decoration.
+- Public display of: role title, department, the job description, and salary band (when `show_salary_publicly` is true). This is a drop-off reduction measure, not decoration.
 - A short closing note above the Submit button, restating what happens next in plain, human language.
 - **The apply page exists only for campaigns with status `open`.** A `closed` or `on_hold` campaign's URL returns 404 — no role title, no description, no "not accepting applications" message. Nothing is exposed about a role that is not live.
 - Consent is presented as a plain-language notice immediately above the Submit button, not as a separate checkbox field. Submitting constitutes consent, and the notice must be visible and adjacent to the button — India's DPDP Act requires a clear affirmative action, which a notice buried in a footer does not satisfy. Submission writes `consent_date`.

@@ -30,8 +30,9 @@
   <% } %>
 
   <h2>Apply-page questions</h2>
-  <p class="muted">Up to 3. Select, multi-select or number only — free text is not allowed here.
+  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.
     These appear on every campaign in this department.</p>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/departments/<%= department.department_id %>/questions">
     <table>
       <thead>
@@ -44,7 +45,7 @@
         <% selectable.forEach((q, i) => { %>
           <tr>
             <td><input type="checkbox" name="selected" value="<%= q.question_id %>" <%= attachedIds.has(q.question_id) ? 'checked' : '' %>></td>
-            <td><%= q.text %> <span class="muted"><%= q.type %></span></td>
+            <td><%= q.text %> <span class="muted"><%= label('questionType', q.type) %></span></td>
             <td><input type="number" name="order_<%= q.question_id %>" min="1" class="order-input" value="<%= orderById[q.question_id] || (i + 1) %>"></td>
             <td><input type="checkbox" name="required_<%= q.question_id %>" <%= requiredById[q.question_id] ? 'checked' : '' %>></td>
           </tr>

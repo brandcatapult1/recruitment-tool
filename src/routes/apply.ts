@@ -6,6 +6,7 @@ import { resolveSource } from '../campaigns/links';
 import { loadLiveApplyQuestions } from '../snapshots';
 import { submitApplication, type ApplyFields } from '../apply/submit';
 import { FREE_TEXT_CHAR_LIMIT, FREE_TEXT_QUESTION_TYPES } from '../constants';
+import { renderJobDescription } from '../html';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,6 +34,7 @@ applyRouter.get(['/apply/:slug', '/apply/:slug/:source'], async (req, res, next)
     res.render('apply/form', {
       title: campaign.role_title,
       campaign,
+      jobDescriptionHtml: renderJobDescription(campaign.job_description),
       source,
       questions,
       submissionId: randomUUID(),
@@ -80,6 +82,7 @@ applyRouter.post(
         return res.status(400).render('apply/form', {
           title: campaign.role_title,
           campaign,
+          jobDescriptionHtml: renderJobDescription(campaign.job_description),
           source,
           questions,
           submissionId: fields.submissionId || randomUUID(),

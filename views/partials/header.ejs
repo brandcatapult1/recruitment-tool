@@ -19,10 +19,13 @@
         <% if (user.role === 'partner') { %><a href="/leadership">Leadership Overview</a><% } %>
       </nav>
       <div class="session">
-        <span class="who"><%= user.name %> · <%= user.role %></span>
+        <span class="who"><%= user.name %> · <%= label('role', user.role) %></span>
         <form method="post" action="/logout" class="inline"><button type="submit" class="link-button">Sign out</button></form>
       </div>
     <% } %>
   </div>
 </header>
 <main class="content">
+  <% if (typeof flash !== 'undefined' && flash) { %>
+    <div class="flash <%= flash.type %>" role="status"><%= flash.message %></div>
+  <% } %>
