@@ -1,45 +1,48 @@
 <%- include('../partials/header') %>
-<div class="card campaign-glass-tile">
-  <div class="card-head">
-    <h1>Staff</h1>
-    <a class="button primary" href="/staff/new">Add staff member</a>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Staff</h1>
+    <p class="page-sub">Deactivation preserves historical attribution: deactivated staff disappear from interviewer dropdowns but remain on past rounds, screens and events.</p>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Department</th>
-        <th>Role</th>
-        <th>Email</th>
-        <th>Status</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% for (const member of staff) { %>
-        <tr class="<%= member.active ? '' : 'inactive' %>">
-          <td><%= member.name %></td>
-          <td><%= member.department || '—' %></td>
-          <td><%= label('role', member.system_role) %></td>
-          <td><%= member.email || '—' %></td>
-          <td><%= member.active ? 'Active' : 'Deactivated' %></td>
-          <td class="actions">
-            <a href="/staff/<%= member.staff_id %>/edit">Edit</a>
-            <% if (member.active) { %>
-              <form method="post" action="/staff/<%= member.staff_id %>/deactivate" class="inline">
-                <button type="submit" class="link-button danger">Deactivate</button>
-              </form>
-            <% } else { %>
-              <form method="post" action="/staff/<%= member.staff_id %>/reactivate" class="inline">
-                <button type="submit" class="link-button">Reactivate</button>
-              </form>
-            <% } %>
-          </td>
-        </tr>
-      <% } %>
-    </tbody>
-  </table>
-  <p class="muted">Deactivation preserves historical attribution: deactivated staff disappear from
-    interviewer dropdowns but remain on past rounds, screens and events.</p>
+  <a class="btn-primary" href="/staff/new">Add staff member</a>
 </div>
+<section class="card campaign-glass-tile">
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Role</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const member of staff) { %>
+          <tr class="<%= member.active ? '' : 'inactive' %>">
+            <td><%= member.name %></td>
+            <td><%= member.department || '—' %></td>
+            <td><%= label('role', member.system_role) %></td>
+            <td><%= member.email || '—' %></td>
+            <td><%= member.active ? 'Active' : 'Deactivated' %></td>
+            <td class="actions">
+              <a href="/staff/<%= member.staff_id %>/edit">Edit</a>
+              <% if (member.active) { %>
+                <form method="post" action="/staff/<%= member.staff_id %>/deactivate" class="inline">
+                  <button type="submit" class="link-button danger">Deactivate</button>
+                </form>
+              <% } else { %>
+                <form method="post" action="/staff/<%= member.staff_id %>/reactivate" class="inline">
+                  <button type="submit" class="link-button">Reactivate</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
 <%- include('../partials/footer') %>

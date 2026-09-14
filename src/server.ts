@@ -27,6 +27,9 @@ if (config.isProduction) app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use('/static', express.static(path.resolve(process.cwd(), 'public')));
+app.get('/favicon.ico', (_req, res) => {
+  res.sendFile(path.resolve(process.cwd(), 'public/favicon.ico'));
+});
 app.use(sessionMiddleware);
 app.use(flashMiddleware);
 app.use((req, res, next) => {

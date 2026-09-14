@@ -1,35 +1,40 @@
 <%- include('../partials/header') %>
-<div class="card campaign-glass-tile">
-  <div class="card-head">
-    <h1>Campaigns</h1>
-    <a class="button primary" href="/campaigns/new">New campaign</a>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Campaigns</h1>
+    <p class="page-sub">Open, on hold, or closed roles. Each campaign inherits questions from its department.</p>
   </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Role</th>
-        <th>Department</th>
-        <th>Status</th>
-        <th>Opened</th>
-        <th>Positions</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (campaigns.length === 0) { %>
-        <tr><td colspan="6" class="muted">No campaigns yet.</td></tr>
-      <% } %>
-      <% for (const c of campaigns) { %>
-        <tr>
-          <td><a href="/campaigns/<%= c.campaign_id %>"><%= c.role_title %></a></td>
-          <td><%= c.department_name %></td>
-          <td><%= label('campaignStatus', c.status) %></td>
-          <td><%= c.opened_date || '—' %></td>
-          <td><%= c.positions_open %></td>
-          <td class="actions"><a href="/campaigns/<%= c.campaign_id %>/edit">Edit</a></td>
-        </tr>
-      <% } %>
-    </tbody>
-  </table>
+  <a class="btn-primary" href="/campaigns/new">New campaign</a>
 </div>
+<section class="card campaign-glass-tile">
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Status</th>
+          <th>Opened</th>
+          <th>Positions</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (campaigns.length === 0) { %>
+          <tr><td colspan="6" class="muted">No campaigns yet.</td></tr>
+        <% } %>
+        <% for (const c of campaigns) { %>
+          <tr>
+            <td><a href="/campaigns/<%= c.campaign_id %>"><%= c.role_title %></a></td>
+            <td><%= c.department_name %></td>
+            <td><%= label('campaignStatus', c.status) %></td>
+            <td><%= c.opened_date || '—' %></td>
+            <td><%= c.positions_open %></td>
+            <td class="actions"><a href="/campaigns/<%= c.campaign_id %>/edit">Edit</a></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
 <%- include('../partials/footer') %>

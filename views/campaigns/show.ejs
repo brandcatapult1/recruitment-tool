@@ -10,14 +10,15 @@
     knockoutById[q.question_id] = q.is_knockout;
   }
 %>
-<div class="card campaign-glass-tile">
-  <div class="card-head">
-    <h1><%= campaign.role_title %></h1>
-    <a class="button primary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= campaign.role_title %></h1>
+    <p class="page-sub"><%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
+      · salary <%= campaign.show_salary_publicly ? 'public' : 'hidden' %></p>
   </div>
-  <p class="muted"><%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
-    · salary <%= campaign.show_salary_publicly ? 'public' : 'hidden' %></p>
-
+  <a class="btn-primary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>
+</div>
+<section class="card campaign-glass-tile">
   <h2>Pipeline stages</h2>
   <ol class="stage-preview">
     <% for (const stage of stages) { %><li><%= label('stage', stage) %></li><% } %>
@@ -57,6 +58,7 @@
     Knockout flags tag and triage only — they never auto-reject.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/campaigns/<%= campaign.campaign_id %>/questions">
+    <div class="panel">
     <table>
       <thead>
         <tr>
@@ -82,7 +84,8 @@
         <% }) %>
       </tbody>
     </table>
+    </div>
     <div class="form-actions"><button type="submit" class="primary">Save questions</button></div>
   </form>
-</div>
+</section>
 <%- include('../partials/footer') %>

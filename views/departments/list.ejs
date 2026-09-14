@@ -1,35 +1,38 @@
 <%- include('../partials/header') %>
-<div class="card campaign-glass-tile">
-  <div class="card-head">
-    <h1>Departments</h1>
-    <a class="button primary" href="/departments/new">Add department</a>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Departments</h1>
+    <p class="page-sub">Each department owns apply questions, screening qualifiers and interview dimensions for every campaign in it. Deactivate rather than delete.</p>
   </div>
-  <p class="muted">Each department owns apply questions, screening qualifiers and interview dimensions
-    for every campaign in it. Deactivate rather than delete.</p>
-  <table>
-    <thead>
-      <tr><th>Name</th><th>Status</th><th></th></tr>
-    </thead>
-    <tbody>
-      <% for (const d of departments) { %>
-        <tr class="<%= d.active ? '' : 'inactive' %>">
-          <td><a href="/departments/<%= d.department_id %>"><%= d.name %></a></td>
-          <td><%= d.active ? 'Active' : 'Inactive' %></td>
-          <td class="actions">
-            <a href="/departments/<%= d.department_id %>/edit">Edit</a>
-            <% if (d.active) { %>
-              <form method="post" action="/departments/<%= d.department_id %>/deactivate" class="inline">
-                <button type="submit" class="link-button">Deactivate</button>
-              </form>
-            <% } else { %>
-              <form method="post" action="/departments/<%= d.department_id %>/reactivate" class="inline">
-                <button type="submit" class="link-button">Reactivate</button>
-              </form>
-            <% } %>
-          </td>
-        </tr>
-      <% } %>
-    </tbody>
-  </table>
+  <a class="btn-primary" href="/departments/new">Add department</a>
 </div>
+<section class="card campaign-glass-tile">
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% for (const d of departments) { %>
+          <tr class="<%= d.active ? '' : 'inactive' %>">
+            <td><a href="/departments/<%= d.department_id %>"><%= d.name %></a></td>
+            <td><%= d.active ? 'Active' : 'Inactive' %></td>
+            <td class="actions">
+              <a href="/departments/<%= d.department_id %>/edit">Edit</a>
+              <% if (d.active) { %>
+                <form method="post" action="/departments/<%= d.department_id %>/deactivate" class="inline">
+                  <button type="submit" class="link-button">Deactivate</button>
+                </form>
+              <% } else { %>
+                <form method="post" action="/departments/<%= d.department_id %>/reactivate" class="inline">
+                  <button type="submit" class="link-button">Reactivate</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
 <%- include('../partials/footer') %>

@@ -35,12 +35,41 @@
   --blur: 12px;
 }
 
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/static/fonts/inter-latin-700-normal.woff2') format('woff2');
+}
+
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
   min-height: 100vh;
-  background: transparent;
+  background: var(--canvas);
   color: var(--ink);
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -48,20 +77,15 @@ html, body {
 }
 
 /*
- * Match ds-preview.html / CampaignViewPage: aurora lives ON THE PAGE the
- * cards sit in. Do not put z-index on .shell — that creates a stacking
- * context and Chromium then blurs nothing (flat white cards).
- * Page background is the same blob colours so backdrop-filter has paint
- * to sample even if the blob divs fail to stack.
+ * Same nesting as ds-preview.html / CampaignViewPage:
+ *   .page (padding, relative) > .aurora (absolute inset 0) + .shell (z-index 10)
+ * Title sits on the aurora (.page-head). Glass tiles are content sections,
+ * not a viewport-filling wrapper.
  */
 .page {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(420px 420px at -5% -8%, rgba(221, 214, 254, 0.45), transparent 70%),
-    radial-gradient(360px 360px at 108% 8%, rgba(255, 237, 213, 0.38), transparent 65%),
-    radial-gradient(340px 340px at 20% 108%, rgba(204, 251, 241, 0.32), transparent 70%),
-    linear-gradient(to bottom right, #f7f5fa, #f3f5f8, #f0f6f4);
+  padding: 1.25rem;
 }
 
 .aurora {
@@ -102,14 +126,13 @@ html, body {
 
 .shell {
   position: relative;
+  z-index: 10;
   max-width: 72rem;
   margin: 0 auto;
-  padding: 1.25rem;
 }
 
-/* .campaign-glass-tile from PR Pulse index.css */
+/* .campaign-glass-tile from PR Pulse index.css — preview applies glass here, not on .card */
 .campaign-glass-tile,
-.card,
 .topbar {
   background: rgba(255, 255, 255, 0.93);
   border: 1px solid #fff;
@@ -165,6 +188,20 @@ html, body {
 }
 
 .content { min-width: 0; }
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.page-head h1,
+.page-head .page-title { margin: 0; }
+.page-head .page-sub { margin: 0.125rem 0 0; }
+.page-head .form-row,
+.page-head .form-actions { margin-top: 0; }
 
 .card { padding: 1rem; }
 .card.narrow { max-width: 24rem; margin: 4rem auto; }
@@ -242,12 +279,12 @@ a:hover { color: var(--brand-hover); }
   color: var(--ink);
 }
 
-/* Optional solid panel. Do not paint tables opaque white — that hid the glass. */
+/* Preview DataTable wrapper — solid panel inside the glass tile */
 .panel {
   width: 100%;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  background: #fff;
   overflow: hidden;
   margin: 0.75rem 0 1rem;
 }
@@ -259,8 +296,8 @@ table {
   line-height: 1.25rem;
   color: var(--ink);
   background: transparent;
-  margin: 0.75rem 0 1rem;
 }
+.panel table { margin: 0; }
 thead tr {
   border-bottom: 1px solid var(--line);
   background: rgba(244, 245, 248, 0.6);
@@ -411,7 +448,8 @@ input[type="checkbox"] {
 .link-button.danger { color: var(--danger); }
 .link-button.danger:hover { background: var(--danger-bg); color: var(--danger); }
 
-.form-actions {
+.form-actions,
+.form-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
