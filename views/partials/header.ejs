@@ -4,26 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · Brand Catapult — HR Pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
+<div class="aurora" aria-hidden="true">
+  <div class="aurora-base"></div>
+  <div class="aurora-v"></div>
+  <div class="aurora-o"></div>
+  <div class="aurora-t"></div>
+</div>
+<div class="shell">
+<%
+  const here = typeof path === 'string' ? path : '';
+  function navOn(prefix) {
+    if (prefix === '/') return here === '/';
+    return here === prefix || here.startsWith(prefix + '/');
+  }
+%>
 <header class="topbar">
-  <div class="topbar-inner">
-    <a class="brand" href="/">Brand Catapult — HR Pulse</a>
-    <% if (user) { %>
-      <nav class="nav">
-        <a href="/">Home</a>
-        <a href="/campaigns">Campaigns</a>
-        <a href="/questions">Questions</a>
-        <% if (user.role === 'admin') { %><a href="/departments">Departments</a><a href="/staff">Staff</a><% } %>
-        <% if (user.role === 'partner') { %><a href="/leadership">Leadership Overview</a><% } %>
-      </nav>
-      <div class="session">
-        <span class="who"><%= user.name %> · <%= label('role', user.role) %></span>
-        <form method="post" action="/logout" class="inline"><button type="submit" class="link-button">Sign out</button></form>
-      </div>
-    <% } %>
-  </div>
+  <a class="brand" href="/">Brand Catapult — HR Pulse</a>
+  <% if (user) { %>
+    <nav class="nav">
+      <a href="/" class="<%= navOn('/') ? 'active' : '' %>">Home</a>
+      <a href="/campaigns" class="<%= navOn('/campaigns') ? 'active' : '' %>">Campaigns</a>
+      <a href="/questions" class="<%= navOn('/questions') ? 'active' : '' %>">Questions</a>
+      <% if (user.role === 'admin') { %>
+        <a href="/departments" class="<%= navOn('/departments') ? 'active' : '' %>">Departments</a>
+        <a href="/staff" class="<%= navOn('/staff') ? 'active' : '' %>">Staff</a>
+      <% } %>
+      <% if (user.role === 'partner') { %>
+        <a href="/leadership" class="<%= navOn('/leadership') ? 'active' : '' %>">Leadership Overview</a>
+      <% } %>
+    </nav>
+    <div class="session">
+      <span class="who"><%= user.name %> · <%= label('role', user.role) %></span>
+      <form method="post" action="/logout" class="inline">
+        <button type="submit" class="btn-ghost">Sign out</button>
+      </form>
+    </div>
+  <% } %>
 </header>
 <main class="content">
   <% if (typeof flash !== 'undefined' && flash) { %>

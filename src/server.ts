@@ -29,6 +29,10 @@ app.use(express.json());
 app.use('/static', express.static(path.resolve(process.cwd(), 'public')));
 app.use(sessionMiddleware);
 app.use(flashMiddleware);
+app.use((req, res, next) => {
+  res.locals.path = req.path;
+  next();
+});
 
 app.use(authRouter);
 app.use(homeRouter);
