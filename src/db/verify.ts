@@ -72,10 +72,17 @@ export async function verifySchema(): Promise<void> {
   const { rows: brandCols } = await pool.query<{ table_name: string }>(
     `SELECT table_name FROM information_schema.columns
       WHERE table_schema = 'public' AND column_name = 'brand_id'
-        AND table_name IN ('campaign', 'department')`
+        AND table_name IN ('campaign', 'department', 'question')`
   );
-  if (brandCols.length < 2) {
-    throw new Error('[verify] campaign.brand_id and department.brand_id are required');
+  if (brandCols.length < 3) {
+    throw new Error('[verify] brand_id is required on campaign, department and question');
+  }
+
+  const { rows: questionBrandUnique } = await pool.query(
+    `SELECT 1 FROM pg_constraint WHERE conname = 'question_brand_text_unique'`
+  );
+  if (questionBrandUnique.length === 0) {
+    throw new Error('[verify] question unique (brand_id, text) constraint is missing');
   }
 
   const { rows: sameBrand } = await pool.query(
@@ -86,6 +93,6 @@ export async function verifySchema(): Promise<void> {
   }
 
   console.log(
-    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign and department`
+    `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign, department and question`
   );
 }

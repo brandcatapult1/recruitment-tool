@@ -28,15 +28,31 @@ async function departmentShowLocals(
   extras: Record<string, unknown> = {}
 ) {
   const attached = await listDepartmentQuestions(department.department_id);
+  return {
+    title: department.name,
+    department,
+    attached,
+    user: sessionUser(req),
+    error: null as string | null,
+    ...extras,
+  };
+}
+
+async function departmentQuestionsLocals(
+  req: import('express').Request,
+  department: DepartmentRow,
+  extras: Record<string, unknown> = {}
+) {
+  const attached = await listDepartmentQuestions(department.department_id);
   const attachedIds = new Set(attached.map((q) => q.question_id));
-  const bank = await listQuestions(true);
+  const bank = await listQuestions(true, department.brand_id);
   const selectable = bank.filter(
     (q) =>
       (DEPARTMENT_APPLY_QUESTION_TYPES as readonly string[]).includes(q.type) &&
       (q.active || attachedIds.has(q.question_id))
   );
   return {
-    title: department.name,
+    title: `Apply questions · ${department.name}`,
     department,
     attached,
     selectable,
@@ -121,6 +137,18 @@ departmentsRouter.get('/:departmentId', async (req, res, next) => {
   }
 });
 
+departmentsRouter.get('/:departmentId/questions', async (req, res, next) => {
+  try {
+    const department = await getDepartment(req.params.departmentId);
+    if (!department) {
+      return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
+    }
+    res.render('departments/questions', await departmentQuestionsLocals(req, department));
+  } catch (err) {
+    next(err);
+  }
+});
+
 departmentsRouter.get('/:departmentId/edit', async (req, res, next) => {
   try {
     const department = await getDepartment(req.params.departmentId);
@@ -187,8 +215,8 @@ departmentsRouter.post('/:departmentId/questions', async (req, res, next) => {
     } catch (err) {
       if (!isUserFacingError(err)) throw err;
       return res.status(400).render(
-        'departments/show',
-        await departmentShowLocals(req, department, { error: err.message })
+        'departments/questions',
+        await departmentQuestionsLocals(req, department, { error: err.message })
       );
     }
     setFlash(req, { type: 'success', message: 'Questions saved.' });

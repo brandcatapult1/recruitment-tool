@@ -3,7 +3,7 @@ import { jobDescriptionHasText, sanitizeJobDescription } from '../html';
 
 export function parseQuestionForm(
   body: Record<string, unknown>
-): { text: string; type: QuestionType; options: string[] | null } | { error: string } {
+): { text: string; type: QuestionType; options: string[] | null; brandId: string } | { error: string } {
   const text = String(body.text ?? '').trim();
   const type = String(body.type ?? '');
   const optionsRaw = String(body.options ?? '');
@@ -20,10 +20,12 @@ export function parseQuestionForm(
   if (needsOptions && options.length === 0) {
     return { error: 'Single choice and Multiple choice questions need at least one option (one per line).' };
   }
+  const brandId = String(body.brand_id ?? '').trim();
   return {
     text,
     type: type as QuestionType,
     options: needsOptions ? options : null,
+    brandId,
   };
 }
 

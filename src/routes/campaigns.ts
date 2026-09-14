@@ -48,7 +48,7 @@ async function campaignShowLocals(req: ExpressRequest, campaign: CampaignRow, ex
     : [];
   const attached = await listCampaignQuestions(campaign.campaign_id);
   const attachedIds = new Set(attached.map((q) => q.question_id));
-  const bank = await listQuestions(true);
+  const bank = await listQuestions(true, campaign.brand_id);
   const selectable = bank.filter((q) => q.active || attachedIds.has(q.question_id));
   return {
     title: campaign.role_title,

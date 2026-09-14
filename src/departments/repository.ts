@@ -163,11 +163,19 @@ export async function replaceDepartmentQuestions(
   }
 
   if (items.length > 0) {
-    const { rows } = await pool.query<{ question_id: string; type: QuestionType }>(
-      'SELECT question_id, type FROM question WHERE question_id = ANY($1::uuid[])',
+    const department = await getDepartment(departmentId);
+    if (!department) throw new UserFacingError('Department not found.');
+    const { rows } = await pool.query<{ question_id: string; type: QuestionType; brand_id: string }>(
+      'SELECT question_id, type, brand_id FROM question WHERE question_id = ANY($1::uuid[])',
       [items.map((i) => i.questionId)]
     );
+    if (rows.length !== items.length) {
+      throw new UserFacingError('Select questions from this brand\'s bank.');
+    }
     for (const row of rows) {
+      if (row.brand_id !== department.brand_id) {
+        throw new UserFacingError('A department can only use questions from its own brand.');
+      }
       if (!(DEPARTMENT_APPLY_QUESTION_TYPES as readonly string[]).includes(row.type)) {
         throw new UserFacingError(
           'Department apply questions must be single choice, multiple choice or number. Free text is not permitted at this tier.'

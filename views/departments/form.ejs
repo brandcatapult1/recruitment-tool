@@ -19,7 +19,7 @@
   <form method="post">
     <% if (!department || !department.department_id) { %>
       <label>Brand
-        <span class="muted">Brand can't be changed later.</span>
+        <span class="muted">Can't be changed later.</span>
         <select name="brand_id" required>
           <option value="" disabled <%= department && department.brand_id ? '' : 'selected' %>>Select a brand</option>
           <% for (const b of brands) { %>

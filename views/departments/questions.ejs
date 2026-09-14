@@ -1,0 +1,49 @@
+<%- include('../partials/header') %>
+<%
+  const attachedIds = new Set(attached.map((q) => q.question_id));
+  const orderById = {};
+  const requiredById = {};
+  for (const q of attached) {
+    orderById[q.question_id] = q.display_order;
+    requiredById[q.question_id] = q.is_required;
+  }
+%>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Set apply questions</h1>
+    <p class="page-sub"><%= department.brand_name %> · <%= department.name %>. Only this brand's structured questions appear here.</p>
+  </div>
+  <a class="btn-secondary" href="/departments/<%= department.department_id %>">Back to department</a>
+</div>
+<section class="card campaign-glass-tile">
+  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.
+    These appear on every campaign in this department.</p>
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post" action="/departments/<%= department.department_id %>/questions">
+    <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Include</th><th>Question</th><th>Order</th><th>Required</th></tr>
+      </thead>
+      <tbody>
+        <% if (selectable.length === 0) { %>
+          <tr><td colspan="4" class="muted">Add structured questions for this brand in the <a href="/questions">question bank</a> first.</td></tr>
+        <% } %>
+        <% selectable.forEach((q, i) => { %>
+          <tr>
+            <td><input type="checkbox" name="selected" value="<%= q.question_id %>" <%= attachedIds.has(q.question_id) ? 'checked' : '' %>></td>
+            <td><%= q.text %> <span class="muted"><%= label('questionType', q.type) %></span></td>
+            <td><input type="number" name="order_<%= q.question_id %>" min="1" class="order-input" value="<%= orderById[q.question_id] || (i + 1) %>"></td>
+            <td><input type="checkbox" name="required_<%= q.question_id %>" <%= requiredById[q.question_id] ? 'checked' : '' %>></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="primary">Save questions</button>
+      <a class="btn-secondary" href="/departments/<%= department.department_id %>">Cancel</a>
+    </div>
+  </form>
+</section>
+<%- include('../partials/footer') %>

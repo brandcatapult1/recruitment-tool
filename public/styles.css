@@ -475,6 +475,7 @@ label {
   color: var(--ink-secondary);
 }
 label .muted { font-weight: 400; color: var(--ink-secondary); }
+label > .muted { display: block; }
 label.check {
   display: flex;
   align-items: center;

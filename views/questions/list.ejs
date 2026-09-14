@@ -2,11 +2,18 @@
 <div class="page-head">
   <div>
     <h1 class="page-title">Question bank</h1>
-    <p class="page-sub">These questions appear on campaign apply pages. Editing a question here does not change answers already recorded — each application stores the wording as it was asked.</p>
+    <p class="page-sub">Each question belongs to one brand. Editing a question here does not change answers already recorded — each application stores the wording as it was asked.</p>
   </div>
   <a class="btn-primary" href="/questions/new">Add question</a>
 </div>
+<% for (const b of brands) {
+  const rows = questions.filter((q) => q.brand_id === b.brand_id);
+%>
 <section class="card campaign-glass-tile">
+  <h2><%= b.name %></h2>
+  <% if (rows.length === 0) { %>
+    <p class="muted">No questions yet.</p>
+  <% } else { %>
   <div class="panel">
     <table>
       <thead>
@@ -18,10 +25,7 @@
         </tr>
       </thead>
       <tbody>
-        <% if (questions.length === 0) { %>
-          <tr><td colspan="4" class="muted">No questions yet. Add one to start building apply pages.</td></tr>
-        <% } %>
-        <% for (const q of questions) { %>
+        <% for (const q of rows) { %>
           <tr class="<%= q.active ? '' : 'inactive' %>">
             <td><%= q.text %></td>
             <td><%= label('questionType', q.type) %></td>
@@ -43,5 +47,7 @@
       </tbody>
     </table>
   </div>
+  <% } %>
 </section>
+<% } %>
 <%- include('../partials/footer') %>

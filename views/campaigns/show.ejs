@@ -71,7 +71,7 @@
       </thead>
       <tbody>
         <% if (selectable.length === 0) { %>
-          <tr><td colspan="5" class="muted">No questions in the bank yet. <a href="/questions/new">Add one</a>.</td></tr>
+          <tr><td colspan="5" class="muted">No questions in this brand's bank yet. <a href="/questions/new">Add one</a>.</td></tr>
         <% } %>
         <% selectable.forEach((q, i) => { %>
           <tr class="<%= q.active ? '' : 'inactive' %>">

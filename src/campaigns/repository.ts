@@ -197,10 +197,20 @@ export async function replaceCampaignQuestions(
   }
 
   if (items.length > 0) {
-    const { rows } = await pool.query<{ question_id: string; type: string }>(
-      'SELECT question_id, type FROM question WHERE question_id = ANY($1::uuid[])',
+    const campaign = await getCampaign(campaignId);
+    if (!campaign) throw new UserFacingError('Campaign not found.');
+    const { rows } = await pool.query<{ question_id: string; type: string; brand_id: string }>(
+      'SELECT question_id, type, brand_id FROM question WHERE question_id = ANY($1::uuid[])',
       [items.map((i) => i.questionId)]
     );
+    if (rows.length !== items.length) {
+      throw new UserFacingError('Select questions from this brand\'s bank.');
+    }
+    for (const row of rows) {
+      if (row.brand_id !== campaign.brand_id) {
+        throw new UserFacingError('A campaign can only use questions from its own brand.');
+      }
+    }
     const freeText = rows.filter((r) =>
       (FREE_TEXT_QUESTION_TYPES as readonly string[]).includes(r.type)
     );

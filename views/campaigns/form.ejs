@@ -21,7 +21,7 @@
       </label>
       <% if (mode === 'create') { %>
         <label>Brand
-          <span class="muted">Brand can't be changed later.</span>
+          <span class="muted">Can't be changed later.</span>
           <select name="brand_id" id="brand-select" required>
             <option value="" disabled <%= currentBrand ? '' : 'selected' %>>Select a brand</option>
             <% for (const b of brands) { %>

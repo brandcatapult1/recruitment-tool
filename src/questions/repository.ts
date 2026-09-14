@@ -1,5 +1,6 @@
 import { pool } from '../db/pool';
 import { QUESTION_TYPES, type QuestionType } from '../constants';
+import { UserFacingError } from '../http/errors';
 
 /**
  * The question bank (§5.9).
@@ -12,20 +13,37 @@ import { QUESTION_TYPES, type QuestionType } from '../constants';
  * There is no delete. Retiring a question sets active = false (R3), which
  * removes it from campaign builders while leaving every campaign that already
  * uses it intact.
+ *
+ * Brand is set at create and never changes. A department or campaign may only
+ * attach questions from its own brand.
  */
 
 export interface QuestionRow {
   question_id: string;
+  brand_id: string;
+  brand_name: string;
   text: string;
   type: QuestionType;
   options: string[] | null;
   active: boolean;
 }
 
-export async function listQuestions(includeInactive = true): Promise<QuestionRow[]> {
+export async function listQuestions(includeInactive = true, brandId?: string): Promise<QuestionRow[]> {
+  const clauses: string[] = [];
+  const params: string[] = [];
+  if (!includeInactive) clauses.push('q.active = true');
+  if (brandId) {
+    params.push(brandId);
+    clauses.push(`q.brand_id = $${params.length}`);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const { rows } = await pool.query<QuestionRow>(
-    `SELECT * FROM question ${includeInactive ? '' : 'WHERE active = true'}
-      ORDER BY active DESC, text ASC`
+    `SELECT q.*, b.name AS brand_name
+       FROM question q
+       JOIN brand b ON b.brand_id = q.brand_id
+      ${where}
+      ORDER BY b.name ASC, q.active DESC, q.text ASC`,
+    params
   );
   return rows;
 }
@@ -37,7 +55,10 @@ export async function listSelectableQuestions(): Promise<QuestionRow[]> {
 
 export async function getQuestion(questionId: string): Promise<QuestionRow | null> {
   const { rows } = await pool.query<QuestionRow>(
-    'SELECT * FROM question WHERE question_id = $1',
+    `SELECT q.*, b.name AS brand_name
+       FROM question q
+       JOIN brand b ON b.brand_id = q.brand_id
+      WHERE q.question_id = $1`,
     [questionId]
   );
   return rows[0] ?? null;
@@ -47,15 +68,28 @@ export interface QuestionInput {
   text: string;
   type: QuestionType;
   options: string[] | null;
+  brandId?: string;
 }
 
 export async function createQuestion(input: QuestionInput): Promise<QuestionRow> {
   validate(input);
-  const { rows } = await pool.query<QuestionRow>(
-    'INSERT INTO question (text, type, options) VALUES ($1, $2, $3) RETURNING *',
-    [input.text, input.type, input.options]
-  );
-  return rows[0];
+  if (!input.brandId || !/^[0-9a-f-]{36}$/i.test(input.brandId)) {
+    throw new UserFacingError('Select a brand.');
+  }
+  try {
+    const { rows } = await pool.query<{ question_id: string }>(
+      'INSERT INTO question (text, type, options, brand_id) VALUES ($1, $2, $3, $4) RETURNING question_id',
+      [input.text, input.type, input.options, input.brandId]
+    );
+    const created = await getQuestion(rows[0].question_id);
+    if (!created) throw new Error('Question insert failed');
+    return created;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new UserFacingError('A question with that wording already exists for this brand.');
+    }
+    throw err;
+  }
 }
 
 export async function updateQuestion(
@@ -63,11 +97,19 @@ export async function updateQuestion(
   input: QuestionInput
 ): Promise<QuestionRow | null> {
   validate(input);
-  const { rows } = await pool.query<QuestionRow>(
-    'UPDATE question SET text = $2, type = $3, options = $4 WHERE question_id = $1 RETURNING *',
-    [questionId, input.text, input.type, input.options]
-  );
-  return rows[0] ?? null;
+  try {
+    const { rows } = await pool.query<{ question_id: string }>(
+      'UPDATE question SET text = $2, type = $3, options = $4 WHERE question_id = $1 RETURNING question_id',
+      [questionId, input.text, input.type, input.options]
+    );
+    if (!rows[0]) return null;
+    return getQuestion(rows[0].question_id);
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new UserFacingError('A question with that wording already exists for this brand.');
+    }
+    throw err;
+  }
 }
 
 export async function setQuestionActive(
@@ -108,12 +150,16 @@ export async function getQuestionUsage(questionId: string): Promise<QuestionUsag
 }
 
 function validate(input: QuestionInput): void {
-  if (!input.text.trim()) throw new Error('Question text is required');
+  if (!input.text.trim()) throw new UserFacingError('Question text is required');
   if (!(QUESTION_TYPES as readonly string[]).includes(input.type)) {
-    throw new Error(`Unknown question type: ${input.type}`);
+    throw new UserFacingError(`Unknown question type: ${input.type}`);
   }
   const needsOptions = input.type === 'select' || input.type === 'multi_select';
   if (needsOptions && (!input.options || input.options.length === 0)) {
-    throw new Error('Select and multi-select questions need at least one option');
+    throw new UserFacingError('Select and multi-select questions need at least one option');
   }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505';
 }
