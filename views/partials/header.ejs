@@ -7,9 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=glass2">
 </head>
 <body>
+<div class="page">
 <div class="aurora" aria-hidden="true">
   <div class="aurora-base"></div>
   <div class="aurora-v"></div>
@@ -24,7 +25,7 @@
     return here === prefix || here.startsWith(prefix + '/');
   }
 %>
-<header class="topbar">
+<header class="topbar campaign-glass-tile">
   <a class="brand" href="/">Brand Catapult — HR Pulse</a>
   <% if (user) { %>
     <nav class="nav">

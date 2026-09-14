@@ -9,7 +9,7 @@
   const showSalary = !(campaign && (campaign.show_salary_publicly === false || campaign.show_salary_publicly === 'false'));
   const currentDept = field('department_id');
 %>
-<div class="card">
+<div class="card campaign-glass-tile">
   <h1><%= title %></h1>
   <p class="muted">One screen. Qualifiers and interview dimensions live on the department, not here.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>

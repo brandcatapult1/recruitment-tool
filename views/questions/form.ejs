@@ -5,7 +5,7 @@
     : (question && question.options ? String(question.options) : '');
   const currentType = question ? question.type : '';
 %>
-<div class="card narrow wide">
+<div class="card campaign-glass-tile narrow wide">
   <h1><%= title %></h1>
   <% if (usage && (usage.campaigns > 0 || usage.recordedAnswers > 0)) { %>
     <p class="notice">Used on <%= usage.campaigns %> campaign<%= usage.campaigns === 1 ? '' : 's' %>

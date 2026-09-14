@@ -40,20 +40,35 @@
 html, body {
   margin: 0;
   min-height: 100vh;
-  background: var(--canvas);
+  background: transparent;
   color: var(--ink);
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: antialiased;
 }
 
-/* CampaignViewPage aurora — behind glass, never behind copy */
+/*
+ * Match ds-preview.html / CampaignViewPage: aurora lives ON THE PAGE the
+ * cards sit in. Do not put z-index on .shell — that creates a stacking
+ * context and Chromium then blurs nothing (flat white cards).
+ * Page background is the same blob colours so backdrop-filter has paint
+ * to sample even if the blob divs fail to stack.
+ */
+.page {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(420px 420px at -5% -8%, rgba(221, 214, 254, 0.45), transparent 70%),
+    radial-gradient(360px 360px at 108% 8%, rgba(255, 237, 213, 0.38), transparent 65%),
+    radial-gradient(340px 340px at 20% 108%, rgba(204, 251, 241, 0.32), transparent 70%),
+    linear-gradient(to bottom right, #f7f5fa, #f3f5f8, #f0f6f4);
+}
+
 .aurora {
   pointer-events: none;
-  position: fixed;
+  position: absolute;
   inset: 0;
   overflow: hidden;
-  z-index: 0;
 }
 .aurora-base {
   position: absolute;
@@ -87,21 +102,21 @@ html, body {
 
 .shell {
   position: relative;
-  z-index: 1;
   max-width: 72rem;
   margin: 0 auto;
   padding: 1.25rem;
 }
 
-/* .campaign-glass-tile */
+/* .campaign-glass-tile from PR Pulse index.css */
+.campaign-glass-tile,
 .card,
 .topbar {
-  background: var(--glass);
+  background: rgba(255, 255, 255, 0.93);
   border: 1px solid #fff;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-glass);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .topbar {
@@ -227,14 +242,12 @@ a:hover { color: var(--brand-hover); }
   color: var(--ink);
 }
 
-/* Tables sit on a solid white panel, not on glass — all-day contrast. */
-.panel,
-.card > table,
-.card form > table {
+/* Optional solid panel. Do not paint tables opaque white — that hid the glass. */
+.panel {
   width: 100%;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.55);
   overflow: hidden;
   margin: 0.75rem 0 1rem;
 }
@@ -245,7 +258,8 @@ table {
   font-size: 0.875rem;
   line-height: 1.25rem;
   color: var(--ink);
-  background: #fff;
+  background: transparent;
+  margin: 0.75rem 0 1rem;
 }
 thead tr {
   border-bottom: 1px solid var(--line);
