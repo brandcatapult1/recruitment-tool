@@ -199,6 +199,18 @@ export async function replaceCampaignQuestions(
   if (items.length > 0) {
     const campaign = await getCampaign(campaignId);
     if (!campaign) throw new UserFacingError('Campaign not found.');
+    const { rows: departmentQs } = await pool.query<{ question_id: string }>(
+      `SELECT question_id FROM department_question WHERE department_id = $1`,
+      [campaign.department_id]
+    );
+    const departmentIds = new Set(departmentQs.map((r) => r.question_id));
+    for (const item of items) {
+      if (departmentIds.has(item.questionId)) {
+        throw new UserFacingError(
+          'That question is already on this department. Campaign questions are only for role-specific extras.'
+        );
+      }
+    }
     const { rows } = await pool.query<{ question_id: string; type: string; brand_id: string }>(
       'SELECT question_id, type, brand_id FROM question WHERE question_id = ANY($1::uuid[])',
       [items.map((i) => i.questionId)]

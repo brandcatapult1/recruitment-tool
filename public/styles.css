@@ -429,6 +429,14 @@ th {
   text-transform: uppercase;
   color: var(--ink-secondary);
 }
+th .muted {
+  display: block;
+  margin-top: 0.25rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  line-height: 1.25;
+}
 td {
   padding: 0.625rem 1rem;
   font-size: 0.875rem;

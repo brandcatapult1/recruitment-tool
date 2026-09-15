@@ -128,7 +128,15 @@ export async function loadLiveApplyQuestions(
       ORDER BY tier_sort ASC, display_order ASC, text ASC`,
     [campaignId]
   );
-  return rows;
+  // Department wins when the same question is attached at both tiers.
+  const seen = new Set<string>();
+  const unique: LiveApplyQuestion[] = [];
+  for (const row of rows) {
+    if (seen.has(row.question_id)) continue;
+    seen.add(row.question_id);
+    unique.push(row);
+  }
+  return unique;
 }
 
 export async function buildQuestionAnswers(

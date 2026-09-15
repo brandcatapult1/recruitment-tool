@@ -24,9 +24,27 @@ export interface SourceVariantLink {
   url: string;
 }
 
-/** The public base URL for candidate-facing links (§13.6 careers subdomain). */
-export function publicBaseUrl(): string {
-  return (config.careersBaseUrl ?? config.appBaseUrl).replace(/\/+$/, '');
+/**
+ * Candidate-facing base URL.
+ * Prefer CAREERS_BASE_URL when set (careers subdomain). Otherwise prefer the
+ * request origin so campaign-page links match the host you're signed into,
+ * then fall back to APP_BASE_URL.
+ */
+export function publicBaseUrl(requestOrigin?: string | null): string {
+  if (config.careersBaseUrl) return config.careersBaseUrl.replace(/\/+$/, '');
+  if (requestOrigin) return requestOrigin.replace(/\/+$/, '');
+  return config.appBaseUrl.replace(/\/+$/, '');
+}
+
+/** Origin of the current request, or null when Host is missing. */
+export function requestOrigin(req: {
+  protocol: string;
+  get(name: string): string | undefined;
+}): string | null {
+  const host = req.get('host');
+  if (!host) return null;
+  const proto = req.get('x-forwarded-proto')?.split(',')[0]?.trim() || req.protocol || 'https';
+  return `${proto}://${host}`;
 }
 
 /** The bare campaign link, with no source segment. Resolves to `other`. */
@@ -34,13 +52,16 @@ export function applyPath(slug: string): string {
   return `/apply/${encodeURIComponent(slug)}`;
 }
 
-export function applyUrl(slug: string): string {
-  return `${publicBaseUrl()}${applyPath(slug)}`;
+export function applyUrl(slug: string, requestOrigin?: string | null): string {
+  return `${publicBaseUrl(requestOrigin)}${applyPath(slug)}`;
 }
 
 /** One distinct URL per source in §6.7. */
-export function sourceVariantLinks(slug: string): SourceVariantLink[] {
-  const base = publicBaseUrl();
+export function sourceVariantLinks(
+  slug: string,
+  requestOrigin?: string | null
+): SourceVariantLink[] {
+  const base = publicBaseUrl(requestOrigin);
   return SOURCES.map((source) => ({
     source,
     url: `${base}${applyPath(slug)}/${source}`,

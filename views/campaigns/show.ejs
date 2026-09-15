@@ -58,7 +58,7 @@
 
   <h2>Campaign apply questions</h2>
   <p class="muted">Up to <%= maxCampaignQuestions %>. At most <%= maxFreeText %> may be free text (500 characters each).
-    Knockout flags tag and triage only — they never auto-reject.</p>
+    Questions already on the department are not listed here — they appear on every apply page automatically.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/campaigns/<%= campaign.campaign_id %>/questions">
     <div class="panel">
@@ -69,12 +69,14 @@
           <th>Question</th>
           <th>Order</th>
           <th>Required</th>
-          <th>Knockout</th>
+          <th>Knockout
+            <span class="muted">Flags the candidate for review based on their answer — never auto-rejects.</span>
+          </th>
         </tr>
       </thead>
       <tbody>
         <% if (selectable.length === 0) { %>
-          <tr><td colspan="5" class="muted">No questions in this brand's bank yet. <a href="/questions/new">Add one</a>.</td></tr>
+          <tr><td colspan="5" class="muted">No extra questions available for this brand, or every active question is already on the department. <a href="/questions/new">Add one</a>.</td></tr>
         <% } %>
         <% selectable.forEach((q, i) => { %>
           <tr class="<%= q.active ? '' : 'inactive' %>">

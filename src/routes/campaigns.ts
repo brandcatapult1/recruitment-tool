@@ -25,7 +25,7 @@ import { listActiveDepartments, getDepartment, listDepartmentQuestions } from '.
 import { listBrands } from '../brands/repository';
 import { isUserFacingError } from '../http/errors';
 import { listQuestions } from '../questions/repository';
-import { applyUrl, sourceVariantLinks } from '../campaigns/links';
+import { applyUrl, sourceVariantLinks, requestOrigin } from '../campaigns/links';
 import { setFlash } from '../http/flash';
 import {
   listBoardCards,
@@ -64,8 +64,16 @@ async function campaignShowLocals(req: ExpressRequest, campaign: CampaignRow, ex
     : [];
   const attached = await listCampaignQuestions(campaign.campaign_id);
   const attachedIds = new Set(attached.map((q) => q.question_id));
+  const departmentQuestionIds = new Set(departmentQuestions.map((q) => q.question_id));
   const bank = await listQuestions(true, campaign.brand_id);
-  const selectable = bank.filter((q) => q.active || attachedIds.has(q.question_id));
+  // Department-inherited questions are not offered again. Already-attached
+  // duplicates stay visible so they can be unchecked and saved away.
+  const selectable = bank.filter(
+    (q) =>
+      (q.active || attachedIds.has(q.question_id)) &&
+      (!departmentQuestionIds.has(q.question_id) || attachedIds.has(q.question_id))
+  );
+  const origin = requestOrigin(req);
   return {
     title: campaign.role_title,
     campaign,
@@ -74,8 +82,8 @@ async function campaignShowLocals(req: ExpressRequest, campaign: CampaignRow, ex
     attached,
     selectable,
     stages: PIPELINE_STAGES,
-    applyUrl: applyUrl(campaign.public_slug),
-    sourceLinks: sourceVariantLinks(campaign.public_slug),
+    applyUrl: applyUrl(campaign.public_slug, origin),
+    sourceLinks: sourceVariantLinks(campaign.public_slug, origin),
     freeTextTypes: FREE_TEXT_QUESTION_TYPES,
     maxCampaignQuestions: MAX_CAMPAIGN_APPLY_QUESTIONS,
     maxFreeText: MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
