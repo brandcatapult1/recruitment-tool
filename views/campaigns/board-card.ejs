@@ -1,0 +1,59 @@
+<article class="board-card<%= card.do_not_contact ? ' is-dnc' : '' %>">
+  <div class="board-card-top">
+    <a href="/people/<%= card.person_id %>"><%= card.full_name %></a>
+    <% if (cardAppliedBefore(card)) { %><span class="pill">Applied before</span><% } %>
+    <% if (card.do_not_contact) { %><span class="pill danger">Do not contact</span><% } %>
+  </div>
+  <p class="muted board-card-meta">
+    <%= label('stage', card.stage) %>
+    <% if (card.outcome_reason) { %> · <%= label('outcomeReason', card.outcome_reason) %><% } %>
+  </p>
+
+  <form method="post" action="/campaigns/<%= campaign.campaign_id %>/applications/<%= card.application_id %>/owner" class="board-card-form">
+    <label>Owner
+      <select name="owner_staff_id" onchange="this.form.submit()">
+        <option value="">Unassigned</option>
+        <% for (const o of owners) { %>
+          <option value="<%= o.staff_id %>" <%= card.owner_staff_id === o.staff_id ? 'selected' : '' %>><%= o.name %></option>
+        <% } %>
+      </select>
+    </label>
+  </form>
+
+  <form
+    method="post"
+    action="/campaigns/<%= campaign.campaign_id %>/applications/<%= card.application_id %>/stage"
+    class="board-card-form stage-form"
+    data-current-stage="<%= card.stage %>"
+  >
+    <label>Move to
+      <select name="stage" class="stage-select" required>
+        <% for (const s of pipelineStages) { %>
+          <option value="<%= s %>" <%= card.stage === s ? 'selected' : '' %>><%= label('stage', s) %></option>
+        <% } %>
+        <optgroup label="Terminal">
+          <% for (const s of terminalStages) { %>
+            <option value="<%= s %>" <%= card.stage === s ? 'selected' : '' %>><%= label('stage', s) %></option>
+          <% } %>
+        </optgroup>
+      </select>
+    </label>
+    <label class="reason-field" hidden>
+      Outcome reason
+      <select name="outcome_reason">
+        <option value="">Select a reason</option>
+        <optgroup label="Ours">
+          <% for (const r of outcomeOurs) { %>
+            <option value="<%= r %>" <%= card.outcome_reason === r ? 'selected' : '' %>><%= label('outcomeReason', r) %></option>
+          <% } %>
+        </optgroup>
+        <optgroup label="Theirs">
+          <% for (const r of outcomeTheirs) { %>
+            <option value="<%= r %>" <%= card.outcome_reason === r ? 'selected' : '' %>><%= label('outcomeReason', r) %></option>
+          <% } %>
+        </optgroup>
+      </select>
+    </label>
+    <button type="submit" class="btn-secondary stage-submit" hidden>Update stage</button>
+  </form>
+</article>

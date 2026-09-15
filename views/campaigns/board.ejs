@@ -1,0 +1,88 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= campaign.role_title %></h1>
+    <p class="page-sub"><%= campaign.brand_name %> · <%= campaign.department_name %> · Board. New applications land in Applied — triage them here.</p>
+  </div>
+  <div class="form-row">
+    <a class="btn-secondary" href="/campaigns/<%= campaign.campaign_id %>">Campaign</a>
+  </div>
+</div>
+
+<section class="card campaign-glass-tile">
+  <form method="get" class="filter-bar board-filters" action="/campaigns/<%= campaign.campaign_id %>/board">
+    <label>Brand
+      <select name="brand" onchange="this.form.submit()">
+        <% for (const b of brands) { %>
+          <option value="<%= b.brand_id %>" <%= selectedBrand === b.brand_id ? 'selected' : '' %>><%= b.name %></option>
+        <% } %>
+      </select>
+    </label>
+    <label>Campaign
+      <select onchange="if (this.value) window.location = '/campaigns/' + this.value + '/board?brand=<%= selectedBrand %>'">
+        <% for (const c of brandCampaigns) { %>
+          <option value="<%= c.campaign_id %>" <%= c.campaign_id === campaign.campaign_id ? 'selected' : '' %>><%= c.role_title %></option>
+        <% } %>
+      </select>
+    </label>
+  </form>
+</section>
+
+<div class="board">
+  <% for (const col of columns) { %>
+    <section class="board-col">
+      <header class="board-col-head">
+        <h2><%= label('stage', col.stage) %></h2>
+        <span class="muted"><%= col.cards.length %></span>
+      </header>
+      <% if (col.cards.length === 0) { %>
+        <p class="muted board-empty">None</p>
+      <% } %>
+      <% for (const card of col.cards) { %>
+        <%- include('board-card', { card, campaign, owners, pipelineStages, terminalStages, outcomeOurs, outcomeTheirs, cardAppliedBefore }) %>
+      <% } %>
+    </section>
+  <% } %>
+</div>
+
+<details class="card campaign-glass-tile board-terminal">
+  <summary>
+    Terminal
+    <span class="muted"><%= terminalCards.length %> · Rejected, Withdrawn, Went silent</span>
+  </summary>
+  <% if (terminalCards.length === 0) { %>
+    <p class="muted">No terminal applications.</p>
+  <% } else { %>
+    <div class="board-terminal-grid">
+      <% for (const card of terminalCards) { %>
+        <%- include('board-card', { card, campaign, owners, pipelineStages, terminalStages, outcomeOurs, outcomeTheirs, cardAppliedBefore }) %>
+      <% } %>
+    </div>
+  <% } %>
+</details>
+<script>
+(function () {
+  var terminal = <%= JSON.stringify(terminalStages) %>;
+  function sync(form) {
+    var select = form.querySelector('.stage-select');
+    var reason = form.querySelector('.reason-field');
+    var reasonSelect = reason && reason.querySelector('select');
+    var submit = form.querySelector('.stage-submit');
+    if (!select) return;
+    var next = select.value;
+    var current = form.getAttribute('data-current-stage') || '';
+    var isTerminal = terminal.indexOf(next) !== -1;
+    var changed = next !== current;
+    if (reason) reason.hidden = !isTerminal;
+    if (reasonSelect) reasonSelect.required = isTerminal && changed;
+    if (submit) submit.hidden = !changed;
+  }
+  document.querySelectorAll('.stage-form').forEach(function (form) {
+    var select = form.querySelector('.stage-select');
+    if (!select) return;
+    select.addEventListener('change', function () { sync(form); });
+    sync(form);
+  });
+})();
+</script>
+<%- include('../partials/footer') %>

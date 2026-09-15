@@ -1,8 +1,49 @@
 <%- include('partials/header') %>
-<div class="card campaign-glass-tile">
-  <h1>Home</h1>
-  <p>Signed in as <strong><%= user.name %></strong> (<%= label('role', user.role) %>).</p>
-  <p class="muted">Find a person, open a campaign, or update a department. Staff can work across every brand.</p>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Home</h1>
+    <p class="page-sub">Signed in as <%= user.name %> (<%= label('role', user.role) %>).</p>
+  </div>
+</div>
+
+<% if (aged && aged.length) { %>
+<section class="card campaign-glass-tile">
+  <h2>Needs attention</h2>
+  <p class="muted">Applications you own that have sat past their stage threshold. Weekends do not count.</p>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Candidate</th>
+          <th>Campaign</th>
+          <th>Stage</th>
+          <th>Waiting</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% for (const a of aged) { %>
+          <tr>
+            <td><a href="/people/<%= a.person_id %>"><%= a.full_name %></a></td>
+            <td><%= a.brand_name %> · <%= a.role_title %></td>
+            <td><%= label('stage', a.stage) %></td>
+            <td><%= formatWeekdayWait(a.weekdayHours) %> <span class="muted">(limit <%= formatWeekdayWait(a.thresholdHours) %>)</span></td>
+            <td class="actions"><a href="/campaigns/<%= a.campaign_id %>/board">Board</a></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } else { %>
+<section class="card campaign-glass-tile">
+  <h2>Needs attention</h2>
+  <p class="muted">Nothing you own is past its stage threshold right now.</p>
+</section>
+<% } %>
+
+<section class="card campaign-glass-tile">
+  <h2>Go to</h2>
   <ul>
     <li><a href="/people">People</a></li>
     <li><a href="/campaigns">Campaigns</a></li>
@@ -11,5 +52,5 @@
     <% if (user.role === 'admin') { %><li><a href="/staff">Manage staff</a></li><% } %>
     <% if (user.role === 'partner') { %><li><a href="/leadership">Leadership Overview</a></li><% } %>
   </ul>
-</div>
+</section>
 <%- include('partials/footer') %>

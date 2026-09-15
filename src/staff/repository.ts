@@ -1,5 +1,5 @@
 import { pool } from '../db/pool';
-import { SYSTEM_ROLES, type SystemRole } from '../constants';
+import { LOGIN_ROLES, SYSTEM_ROLES, type SystemRole } from '../constants';
 
 export interface StaffRow {
   staff_id: string;
@@ -84,6 +84,17 @@ export async function setStaffActive(staffId: string, active: boolean): Promise<
 export async function listSelectableInterviewers(): Promise<Pick<StaffRow, 'staff_id' | 'name' | 'department'>[]> {
   const { rows } = await pool.query<StaffRow>(
     'SELECT staff_id, name, department FROM staff WHERE active = true ORDER BY name ASC'
+  );
+  return rows;
+}
+
+export async function listSelectableOwners(): Promise<Pick<StaffRow, 'staff_id' | 'name'>[]> {
+  const { rows } = await pool.query<Pick<StaffRow, 'staff_id' | 'name'>>(
+    `SELECT staff_id, name
+       FROM staff
+      WHERE active = true AND system_role = ANY($1::text[])
+      ORDER BY name ASC`,
+    [LOGIN_ROLES]
   );
   return rows;
 }

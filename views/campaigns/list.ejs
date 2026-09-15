@@ -42,7 +42,10 @@
             <td><%= label('campaignStatus', c.status) %></td>
             <td><%= c.opened_date || '—' %></td>
             <td><%= c.positions_open %></td>
-            <td class="actions"><a href="/campaigns/<%= c.campaign_id %>/edit">Edit</a></td>
+            <td class="actions">
+              <a href="/campaigns/<%= c.campaign_id %>/board">Board</a>
+              <a href="/campaigns/<%= c.campaign_id %>/edit">Edit</a>
+            </td>
           </tr>
         <% } %>
       </tbody>

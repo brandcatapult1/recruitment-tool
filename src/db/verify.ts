@@ -106,6 +106,13 @@ export async function verifySchema(): Promise<void> {
     throw new Error('[verify] department normalised-name unique index is missing');
   }
 
+  const { rows: appCampaignStage } = await pool.query(
+    `SELECT 1 FROM pg_indexes WHERE indexname = 'idx_application_campaign_stage'`
+  );
+  if (appCampaignStage.length === 0) {
+    throw new Error('[verify] idx_application_campaign_stage is missing');
+  }
+
   console.log(
     `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign, department and question`
   );

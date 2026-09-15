@@ -16,7 +16,10 @@
     <p class="page-sub"><%= campaign.brand_name %> · <%= campaign.department_name %> · <%= label('campaignStatus', campaign.status) %> · <%= campaign.positions_open %> open
       · salary <%= campaign.show_salary_publicly ? 'public' : 'hidden' %></p>
   </div>
-  <a class="btn-primary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>
+  <div class="form-row">
+    <a class="btn-primary" href="/campaigns/<%= campaign.campaign_id %>/board">Open board</a>
+    <a class="btn-secondary" href="/campaigns/<%= campaign.campaign_id %>/edit">Edit campaign</a>
+  </div>
 </div>
 <section class="card campaign-glass-tile">
   <h2>Pipeline stages</h2>

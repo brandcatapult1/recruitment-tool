@@ -5,7 +5,10 @@ import {
   FREE_TEXT_QUESTION_TYPES,
   MAX_CAMPAIGN_APPLY_QUESTIONS,
   MAX_CAMPAIGN_FREE_TEXT_QUESTIONS,
+  OUTCOME_REASONS,
+  OUTCOME_REASON_LIST,
   PIPELINE_STAGES,
+  TERMINAL_STAGES,
 } from '../constants';
 import { parseCampaignForm, parseQuestionBuilderForm } from './forms';
 import {
@@ -24,6 +27,13 @@ import { isUserFacingError } from '../http/errors';
 import { listQuestions } from '../questions/repository';
 import { applyUrl, sourceVariantLinks } from '../campaigns/links';
 import { setFlash } from '../http/flash';
+import {
+  listBoardCards,
+  changeStage,
+  changeOwner,
+  cardAppliedBefore,
+} from '../applications/repository';
+import { listSelectableOwners } from '../staff/repository';
 
 export const campaignsRouter = Router();
 
@@ -156,6 +166,120 @@ campaignsRouter.get('/:campaignId', async (req, res, next) => {
       return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
     }
     res.render('campaigns/show', await campaignShowLocals(req, campaign));
+  } catch (err) {
+    next(err);
+  }
+});
+
+campaignsRouter.get('/:campaignId/board', async (req, res, next) => {
+  try {
+    const campaign = await getCampaign(req.params.campaignId);
+    if (!campaign) {
+      return res.status(404).render('not-found', { title: 'Not found', user: sessionUser(req) });
+    }
+    const requestedBrand =
+      typeof req.query.brand === 'string' && /^[0-9a-f-]{36}$/i.test(req.query.brand)
+        ? req.query.brand
+        : undefined;
+    const brandFilter = requestedBrand ?? campaign.brand_id;
+    const brandCampaigns = await listCampaigns(brandFilter);
+    if (requestedBrand && requestedBrand !== campaign.brand_id) {
+      const first = brandCampaigns[0];
+      if (first) {
+        return res.redirect(`/campaigns/${first.campaign_id}/board?brand=${requestedBrand}`);
+      }
+    }
+    const [cards, owners, brands] = await Promise.all([
+      listBoardCards(campaign.campaign_id),
+      listSelectableOwners(),
+      listBrands(true),
+    ]);
+    const columns = PIPELINE_STAGES.map((stage) => ({
+      stage,
+      cards: cards.filter((c) => c.stage === stage),
+    }));
+    const terminalCards = cards.filter((c) =>
+      (TERMINAL_STAGES as readonly string[]).includes(c.stage)
+    );
+    const ours = OUTCOME_REASON_LIST.filter((r) => OUTCOME_REASONS[r] === 'ours');
+    const theirs = OUTCOME_REASON_LIST.filter((r) => OUTCOME_REASONS[r] === 'theirs');
+    res.render('campaigns/board', {
+      title: `${campaign.role_title} · Board`,
+      campaign,
+      columns,
+      terminalCards,
+      owners,
+      brands,
+      brandCampaigns,
+      selectedBrand: brandFilter,
+      pipelineStages: PIPELINE_STAGES,
+      terminalStages: TERMINAL_STAGES,
+      outcomeOurs: ours,
+      outcomeTheirs: theirs,
+      cardAppliedBefore,
+      user: sessionUser(req),
+      error: null as string | null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+campaignsRouter.post('/:campaignId/applications/:applicationId/stage', async (req, res, next) => {
+  try {
+    const user = sessionUser(req);
+    if (!user) return res.redirect('/login');
+    const campaign = await getCampaign(req.params.campaignId);
+    if (!campaign) {
+      return res.status(404).render('not-found', { title: 'Not found', user });
+    }
+    try {
+      await changeStage(
+        campaign.campaign_id,
+        req.params.applicationId,
+        String(req.body.stage ?? ''),
+        req.body.outcome_reason == null ? null : String(req.body.outcome_reason),
+        user.staffId
+      );
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      setFlash(req, { type: 'error', message: err.message });
+      return req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        res.redirect(`/campaigns/${campaign.campaign_id}/board`);
+      });
+    }
+    res.redirect(`/campaigns/${campaign.campaign_id}/board`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+campaignsRouter.post('/:campaignId/applications/:applicationId/owner', async (req, res, next) => {
+  try {
+    const user = sessionUser(req);
+    if (!user) return res.redirect('/login');
+    const campaign = await getCampaign(req.params.campaignId);
+    if (!campaign) {
+      return res.status(404).render('not-found', { title: 'Not found', user });
+    }
+    const raw = String(req.body.owner_staff_id ?? '').trim();
+    try {
+      await changeOwner(
+        campaign.campaign_id,
+        req.params.applicationId,
+        raw || null,
+        user.staffId
+      );
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      setFlash(req, { type: 'error', message: err.message });
+      return req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        res.redirect(`/campaigns/${campaign.campaign_id}/board`);
+      });
+    }
+    res.redirect(`/campaigns/${campaign.campaign_id}/board`);
   } catch (err) {
     next(err);
   }

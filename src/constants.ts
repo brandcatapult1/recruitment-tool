@@ -34,6 +34,31 @@ export function isTerminalStage(stage: Stage): stage is TerminalStage {
   return (TERMINAL_STAGES as readonly string[]).includes(stage);
 }
 
+export function isPipelineStage(stage: string): stage is PipelineStage {
+  return (PIPELINE_STAGES as readonly string[]).includes(stage);
+}
+
+export function isStage(value: string): value is Stage {
+  return (ALL_STAGES as readonly string[]).includes(value);
+}
+
+/**
+ * Aging SLAs in weekday clock-hours (Mon–Fri, 24h per weekday, Asia/Kolkata).
+ * `joined` and terminal stages are omitted — they do not age.
+ */
+export const STAGE_AGING_WEEKDAY_HOURS: Partial<Record<Stage, number>> = {
+  applied: 48,
+  shortlisted: 72,
+  screened: 40,
+  assignment: 40,
+  interviewing: 40,
+  offered: 40,
+  // Notice-period window. 30 weekday days, not the 5-day stall clock.
+  offer_accepted: 30 * 24,
+};
+
+export const WEEKDAY_TIMEZONE = 'Asia/Kolkata';
+
 // ---------------------------------------------------------------------------
 // §6.2 Outcome reasons — every reason is attributed `ours` or `theirs`
 // ---------------------------------------------------------------------------

@@ -24,6 +24,11 @@ export interface PersonRow {
   application_count: number;
 }
 
+/** Same rule as the person page: more than one application means applied before. */
+export function hasAppliedBefore(applicationCount: number): boolean {
+  return applicationCount > 1;
+}
+
 export interface PersonApplication {
   application_id: string;
   campaign_id: string;
