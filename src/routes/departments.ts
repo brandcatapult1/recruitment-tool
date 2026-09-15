@@ -240,7 +240,16 @@ departmentsRouter.post('/:departmentId/deactivate', async (req, res, next) => {
 
 departmentsRouter.post('/:departmentId/reactivate', async (req, res, next) => {
   try {
-    await setDepartmentActive(req.params.departmentId, true);
+    try {
+      await setDepartmentActive(req.params.departmentId, true);
+    } catch (err) {
+      if (!isUserFacingError(err)) throw err;
+      setFlash(req, { type: 'error', message: err.message });
+      return req.session.save((saveErr) => {
+        if (saveErr) return next(saveErr);
+        res.redirect('/departments');
+      });
+    }
     res.redirect('/departments');
   } catch (err) {
     next(err);

@@ -92,6 +92,20 @@ export async function verifySchema(): Promise<void> {
     throw new Error('[verify] campaign_department_same_brand trigger is missing');
   }
 
+  const { rows: nameKey } = await pool.query(
+    `SELECT 1 FROM pg_proc WHERE proname = 'department_name_key'`
+  );
+  if (nameKey.length === 0) {
+    throw new Error('[verify] department_name_key is missing');
+  }
+
+  const { rows: normUnique } = await pool.query(
+    `SELECT 1 FROM pg_indexes WHERE indexname = 'department_brand_norm_name_active_unique'`
+  );
+  if (normUnique.length === 0) {
+    throw new Error('[verify] department normalised-name unique index is missing');
+  }
+
   console.log(
     `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign, department and question`
   );

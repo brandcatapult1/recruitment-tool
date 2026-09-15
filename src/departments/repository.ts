@@ -91,7 +91,9 @@ export async function createDepartment(input: DepartmentInput): Promise<Departme
     return created;
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new UserFacingError('A department with that name already exists for this brand.');
+      throw new UserFacingError(
+        'A department with that name, or a very similar name, already exists for this brand.'
+      );
     }
     throw err;
   }
@@ -111,7 +113,9 @@ export async function updateDepartment(
     );
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new UserFacingError('A department with that name already exists for this brand.');
+      throw new UserFacingError(
+        'A department with that name, or a very similar name, already exists for this brand.'
+      );
     }
     throw err;
   }
@@ -122,11 +126,20 @@ export async function setDepartmentActive(
   departmentId: string,
   active: boolean
 ): Promise<DepartmentRow | null> {
-  const { rows } = await pool.query<DepartmentRow>(
-    'UPDATE department SET active = $2 WHERE department_id = $1 RETURNING *',
-    [departmentId, active]
-  );
-  return rows[0] ?? null;
+  try {
+    const { rows } = await pool.query<DepartmentRow>(
+      'UPDATE department SET active = $2 WHERE department_id = $1 RETURNING *',
+      [departmentId, active]
+    );
+    return rows[0] ?? null;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new UserFacingError(
+        'A department with that name, or a very similar name, already exists for this brand.'
+      );
+    }
+    throw err;
+  }
 }
 
 export async function listDepartmentQuestions(departmentId: string): Promise<DepartmentQuestionRow[]> {
