@@ -98,6 +98,30 @@ Three login roles. A fourth user type exists as data only.
 
 Eight entities. Field types are indicative; adapt to the chosen stack.
 
+### 5.0 `brand` — the hiring entity
+
+Brand Catapult operates alongside sister concerns in the same industry — e.g. The Lightscape Studio (a production house) — and more may be added. All hire the same way and draw from the same NCR talent pool, so they live in **one system with one shared candidate database**, separated by brand at the campaign level, never by a separate tool or a separate pool.
+
+| Field | Type | Notes |
+|---|---|---|
+| `brand_id` | uuid, PK | |
+| `name` | string, unique | e.g. "Brand Catapult", "The Lightscape Studio" |
+| `logo_public_id` | string, nullable | Cloudinary id for the brand's logo, shown on its public apply pages |
+| `apply_page_title` | string | The name shown publicly on this brand's apply pages |
+| `active` | boolean, default true | Deactivate rather than delete |
+
+Admin-maintained. Seeded with **Brand Catapult** (the existing brand) and **The Lightscape Studio**.
+
+**What brand scopes, and what it does NOT.**
+
+- **Campaigns belong to a brand.** `campaign.brand_id`, required. This is the single anchor — everything else derives brand *through* the campaign.
+- **Departments belong to a brand.** Each brand has its own department list with no overlap — Brand Catapult's twelve are marketing/creative; Lightscape's are production-house departments (photography, production, post-production, and so on). `department.brand_id`, required.
+- **The public apply page shows the campaign's brand identity** — that brand's name and logo, not the group's. To a candidate, a Lightscape role looks like Lightscape's own careers page.
+- **The candidate pool is NOT scoped by brand.** A person is one record across the whole system. Someone who applies to a Lightscape role and later a Brand Catapult role is one person with both applications visible. This is deliberate and is the core of the dependency-reduction goal: a videographer in the database from a Lightscape shoot is findable when a Brand Catapult content role opens.
+- **Recruiter access is NOT scoped by brand.** The HR team is shared. A recruiter may own several Brand Catapult campaigns and a Lightscape campaign at once. Brand is a **filter and a label** on internal lists (campaigns, pipeline, dashboards), never an access wall. Everyone sees everything; brand lets them narrow the view when they want to.
+
+---
+
 ### 5.1 `person` — one record per human
 
 The permanent asset. Nothing role-specific or campaign-specific lives here.
@@ -131,8 +155,9 @@ The permanent asset. Nothing role-specific or campaign-specific lives here.
 |---|---|---|
 | `campaign_id` | uuid, PK | |
 | `role_title` | string, required | |
-| `department_id` | uuid, FK → department, required | Dropdown only. Never free text. Qualifiers and feedback dimensions are inherited from here. |
-| `job_description` | text, required | The role description shown publicly on the apply page. Stored as a small HTML subset (bold, italic, lists, two heading levels). Sanitised with `sanitize-html` on save and again on public render. |
+| `brand_id` | uuid, FK → brand, required | Which hiring entity this role belongs to. Drives the public apply page's identity and filters every internal list. Set once at creation. |
+| `department_id` | uuid, FK → department, required | Dropdown only. Never free text. Must belong to the same brand as the campaign. All three assessment sets (apply questions, screening qualifiers, feedback dimensions) are inherited from here, unconditionally. Not shown or editable in the campaign flow. |
+| `job_description` | text, required | The role description shown publicly on the apply page. |
 | `positions_open` | integer, default 1 | |
 | `salary_band_min` | integer, nullable | |
 | `salary_band_max` | integer, nullable | |
@@ -141,6 +166,8 @@ The permanent asset. Nothing role-specific or campaign-specific lives here.
 | `opened_date` | date | |
 | `closed_date` | date, nullable | |
 | `public_slug` | string, unique | Drives the public URL |
+| `process_description` | text, nullable | Shown publicly on the apply page — what the hiring process involves, in plain language. Pre-filled with a default, editable. Not derived from stage names; internal stage labels are jargon. |
+| `expected_timeline` | string, nullable | Shown publicly on the apply page, e.g. "You'll hear from us within 3 working days." Pre-filled with a default, editable. |
 
 **Campaign creation rules.** `status` is always `open` at creation and is not on the create form. `closed_date` is set automatically when status changes to `closed`; it is never typed by hand. Screening qualifiers and feedback dimensions do not appear anywhere on the campaign form — they belong to the department (§5.10) and are inherited.
 
@@ -273,7 +300,8 @@ Departments are a maintained list, not free text. Each department owns the scree
 | Field | Type | Notes |
 |---|---|---|
 | `department_id` | uuid, PK | |
-| `name` | string, unique | |
+| `brand_id` | uuid, FK → brand, required | The brand this department belongs to. Departments do not cross brands. |
+| `name` | string, unique **within a brand** | |
 | `screening_qualifiers` | array of string, max 2 | The role-specific questions a recruiter must answer on the telephonic screen for any role in this department |
 | `apply_questions` | up to 3, referencing the question bank | Discipline-specific questions asked on the apply page for every campaign in this department |
 | `feedback_dimensions` | array of string, max 4 | The dimensions scored 1–5 on interview rounds for any role in this department |
@@ -281,7 +309,7 @@ Departments are a maintained list, not free text. Each department owns the scree
 
 Admin-maintained only. Recruiters select a department when creating a campaign and never see or edit this configuration.
 
-**Seed list:**
+**Seed list (Brand Catapult's departments — Lightscape and any future brand get their own):**
 
 ```
 Brand Managers          (the agency's term for account management)
@@ -298,7 +326,22 @@ Branding & Projects
 Photography & Videography
 ```
 
-**Inheritance rule.** A campaign inherits its department's qualifiers and dimensions at the point of use — the screen form reads the department's qualifiers, the round form reads its dimensions. Per-campaign override is deliberately not supported in v1. If a role needs different questions, the department's configuration is what changes. R5 still applies: both are snapshotted at the point they are answered or scored, so editing a department never rewrites past screens or past interview scores.
+**The three assessment sets, and who controls them.** A candidate is assessed at exactly three moments, and each has one question set that lives on the **department**, not the campaign:
+
+1. **Apply questions** — the public form (filter volume).
+2. **Screening qualifiers** — the recruiter's phone call (don't waste the panel's time).
+3. **Feedback dimensions** — the interview scorecard (compare people fairly).
+
+All three are **stable within a department** — a Videographer is assessed the same way whichever campaign they applied through — so they are configured **once per department** and every campaign inherits them automatically.
+
+**Configuration is an administrative action, deliberately separated from the hiring flow.**
+- The **campaign create/edit flow never shows these three sets.** A recruiter opening a new campaign supplies only: role title, brand, department, positions, salary band + visibility, and job description. They never see a qualifier or dimension box. This is the core of the foolproof design — the person creating a campaign cannot put anything wrong into the assessment sets because they are never shown them.
+- The three sets are configured on the **department page**, as an explicit Admin action, clearly labelled as applying to every campaign in that department.
+- **There is no per-campaign override in v1.** If a role genuinely needs different assessment than its department, an Admin edits the department (or creates a more specific department). This removes the single largest quality risk — a junior recruiter typing poor qualifiers per campaign — and makes inheritance unconditional.
+
+**Who may configure (v1):** Admin only. **Planned (access-rights module, v1.5/v2):** the "configure assessment sets" permission extends to a Senior Recruiter / HR Manager role, so senior HR staff can maintain departments without full Admin rights, while ordinary recruiters never can. See §11.
+
+R5 still applies: qualifiers and dimensions are snapshotted at the point they are answered or scored, so later edits never rewrite past screens or interview scores.
 
 ---
 
@@ -563,7 +606,7 @@ Questions requiring genuine analytical reasoning — case studies, positioning e
 **The 16-question cap is enforced in the form builder**, not advisory. Attempting to add a seventeenth is refused with an explanation, as is a third free-text question at campaign level or any free-text question at department level. Ten universal plus three department plus three campaign lands exactly on the cap. Without a hard stop this creeps back toward twenty fields within a year, and length is the single largest cause of drop-off.
 
 **Never ask on the apply page:** expected compensation (§5.4), photographs of the candidate (a barrier at the top of the funnel, and it invites bias into screening before any work has been evaluated), or file-naming conventions the candidate must follow — uploads are renamed automatically on ingest per §13.4.
-- Public display of: role title, department, the job description, and salary band (when `show_salary_publicly` is true). This is a drop-off reduction measure, not decoration.
+- Public display of: role title, department, the job description, salary band (when `show_salary_publicly` is true), the process steps, and expected timeline. This is a drop-off reduction measure, not decoration.
 - A short closing note above the Submit button, restating what happens next in plain, human language.
 - **The apply page exists only for campaigns with status `open`.** A `closed` or `on_hold` campaign's URL returns 404 — no role title, no description, no "not accepting applications" message. Nothing is exposed about a role that is not live.
 - Consent is presented as a plain-language notice immediately above the Submit button, not as a separate checkbox field. Submitting constitutes consent, and the notice must be visible and adjacent to the button — India's DPDP Act requires a clear affirmative action, which a notice buried in a footer does not satisfy. Submission writes `consent_date`.
@@ -583,6 +626,61 @@ Questions requiring genuine analytical reasoning — case studies, positioning e
 - Page is fully usable at 360px width.
 
 **Out of scope:** account creation, save-and-resume, application status portal for candidates, CAPTCHA beyond basic bot protection.
+
+---
+
+### M2.5 — Brands, sidebar and identity
+
+**Depends on:** M0, M1, M2
+**Purpose:** introduce the brand entity as a top-level concept before later modules are built on top of it, and move the shell to a scalable sidebar. Retrofitting brand after M3–M8 would touch every one of them; adding it now touches only what exists.
+
+**Scope**
+- New `brand` table per §5.0. Admin CRUD: name, apply-page title, logo upload, active flag.
+- Seed **Brand Catapult** and **The Lightscape Studio**.
+- Add `brand_id` to `campaign` (required) and `department` (required). **Migration backfills every existing campaign and department to Brand Catapult** so nothing is orphaned.
+- Campaign create form gains a brand dropdown; the department dropdown then filters to that brand's departments only.
+- Department management is grouped by brand.
+- Public apply page shows the campaign's brand identity — brand name and logo from §5.0, not a group-wide identity.
+- Brand becomes a filter on all internal lists: campaigns, and later the pipeline and dashboards. It is never an access restriction — any recruiter can see and work any brand's campaigns.
+- **Navigation moves from top bar to a left sidebar**, matching the sister tool's pattern, so navigation scales as M3–M8 add destinations. The Brand Catapult group logo sits at the top of the sidebar. Add a favicon (the same mark) to clear the current 404.
+- Self-host the Inter font rather than loading from Google Fonts, which currently fails intermittently.
+
+**Acceptance criteria**
+- Every existing campaign and department is attributed to Brand Catapult after migration; nothing is left without a brand.
+- Creating a Lightscape campaign, then opening its apply page, shows Lightscape's name and logo — not Brand Catapult's.
+- A department created under one brand cannot be selected for a campaign of another brand.
+- A single recruiter can own campaigns across two brands simultaneously and see both.
+- The candidate pool is unaffected — searching a person shows applications across all brands in one timeline.
+- Sidebar navigation works at desktop width with no loss of table readability.
+
+**Out of scope:** per-brand recruiter access restrictions (deliberately not built — access is shared), per-brand theming beyond name and logo, separate candidate databases.
+
+---
+
+### M3 pre-work — fixes and the qualifier/dimension seed system
+
+**Depends on:** M2.5
+**Purpose:** clear outstanding defects and build the seed-and-override system for screening qualifiers and feedback dimensions, before the repository is built on top.
+
+**Fixes**
+- The apply-question bank is not brand-scoped: a department in one brand is offered another brand's questions. Scope the question bank (or at least the department question builder) so a department only sees questions valid for its brand. A Lightscape department must never be offered Brand Catapult's questions.
+- After saving a new department, return to the department view — do not drop the user into the apply-question builder unprompted.
+- Home page still shows build-status scaffolding ("M0–M2 are in place…"). Replace with real, neutral home content.
+- Campaign and department forms show a doubled label ("Brand Brand can't be changed later"). The brand label and its helper hint must render on separate lines, not concatenated.
+
+**Qualifier / dimension seed system**
+- Department gains seeded `screening_qualifiers` and `feedback_dimensions` defaults, editable by Admin only, in department settings.
+- Seed all departments from the maintained defaults document (Brand Catapult's twelve minus Photography & Videography, plus Lightscape's set). Photography & Videography is deactivated on Brand Catapult, not deleted.
+- Every campaign inherits its department's three assessment sets unconditionally. There is NO per-campaign override.
+- The campaign create/edit flow must NOT display apply questions, screening qualifiers, or feedback dimensions at all. A recruiter creating a campaign supplies only title, brand, department, positions, salary + visibility, and JD.
+- The three sets are configured only on the department page, an Admin-only action, with a plain-language header explaining they apply to every campaign in the department and are set once.
+- Foolproof by construction: the person creating a campaign is never shown the assessment sets, so cannot put anything wrong into them.
+
+**Acceptance criteria**
+- A Lightscape department's question builder offers only Lightscape-valid questions.
+- Saving a new department returns to the department view.
+- Creating a campaign shows the department's qualifiers and dimensions already populated.
+- Overriding them on one campaign leaves every other campaign in that department unchanged.
 
 ---
 
@@ -806,7 +904,8 @@ Mitigation outside the build: a defined cutover date after which the spreadsheet
 **v1** — Modules M0 through M8 as specified above.
 
 **v1.5** — Candidates for the next release, in rough priority order:
-1. **Talent pool view** — a filtered view over `revisit`, `strong_candidate_role_closed`, and `strong_candidate_better_fit_elsewhere`, plus tag search. Small build; the data will already exist.
+1. **Assessment-set configuration permission** — extend the right to configure a department's apply questions, screening qualifiers and feedback dimensions to a Senior Recruiter / HR Manager role, so senior HR staff maintain departments without full Admin rights while ordinary recruiters cannot. Part of the broader access-rights work.
+2. **Talent pool view** — a filtered view over `revisit`, `strong_candidate_role_closed`, and `strong_candidate_better_fit_elsewhere`, plus tag search. Small build; the data will already exist.
 2. **No-login feedback link** — unique tokenised URL sent to an interviewer, no password, feedback submitted directly. Typically the single largest improvement to feedback quality and turnaround.
 3. WhatsApp templates and outreach compose.
 4. Saved searches and bulk actions.

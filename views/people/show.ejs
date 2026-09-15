@@ -1,0 +1,108 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= person.full_name %></h1>
+    <p class="page-sub"><%= person.phone %><%= person.email ? ' · ' + person.email : '' %><%= person.city ? ' · ' + person.city : '' %></p>
+  </div>
+  <div class="form-row">
+    <a class="btn-secondary" href="/people/<%= person.person_id %>/merge">Merge with another record</a>
+  </div>
+</div>
+
+<% if (person.do_not_contact) { %>
+  <p class="error">Do not contact. Outreach views should skip this person. History is kept.</p>
+<% } %>
+
+<% if (applications.length > 1) { %>
+<section class="card campaign-glass-tile">
+  <h2>Applied before</h2>
+  <p>This person has <%= applications.length %> applications. Prior campaigns, interviewers and verdicts are below — no need to leave this page.</p>
+  <ul>
+    <% for (const row of prior) { %>
+      <li>
+        <strong><%= row.campaign %></strong>
+        <% if (row.interviewers.length) { %> · interviewers: <%= row.interviewers.join(', ') %><% } %>
+        <% if (row.verdicts.length) { %> · <%= row.verdicts.map((v) => label('verdict', v)).join(', ') %><% } %>
+      </li>
+    <% } %>
+  </ul>
+</section>
+<% } %>
+
+<section class="card campaign-glass-tile">
+  <h2>Record</h2>
+  <p><strong>First seen:</strong> <%= person.first_seen_date ? String(person.first_seen_date).slice(0, 10) : '—' %>
+    <% if (person.first_source) { %> · <%= label('source', person.first_source) %><% } %></p>
+  <p><strong>Consent:</strong> <%= person.consent_date ? String(person.consent_date).slice(0, 10) : '—' %></p>
+  <% if (person.phone_needs_review) { %><p class="notice">Phone stored as typed — it could not be normalised.</p><% } %>
+
+  <form method="post" action="/people/<%= person.person_id %>/do-not-contact" class="form-row">
+    <% if (person.do_not_contact) { %>
+      <input type="hidden" name="value" value="false">
+      <button type="submit" class="btn-secondary">Clear do-not-contact</button>
+    <% } else { %>
+      <input type="hidden" name="value" value="true">
+      <button type="submit" class="btn-secondary">Mark do not contact</button>
+    <% } %>
+  </form>
+
+  <% if (tags.length) { %>
+    <form method="post" action="/people/<%= person.person_id %>/tags">
+      <fieldset>
+        <legend>Tags</legend>
+        <% const current = new Set(person.tags || []); %>
+        <% for (const t of tags) { %>
+          <label class="check">
+            <input type="checkbox" name="tag" value="<%= t %>" <%= current.has(t) ? 'checked' : '' %>>
+            <%= t.replace(/_/g, ' ') %>
+          </label>
+        <% } %>
+      </fieldset>
+      <div class="form-actions"><button type="submit" class="primary">Save tags</button></div>
+    </form>
+  <% } %>
+</section>
+
+<section class="card campaign-glass-tile">
+  <h2>Applications</h2>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Role</th><th>Brand</th><th>Stage</th><th>Applied</th></tr>
+      </thead>
+      <tbody>
+        <% if (applications.length === 0) { %>
+          <tr><td colspan="4" class="muted">No applications.</td></tr>
+        <% } %>
+        <% for (const a of applications) { %>
+          <tr>
+            <td><%= a.role_title %></td>
+            <td><%= a.brand_name %></td>
+            <td><%= label('stage', a.stage) %></td>
+            <td><%= a.applied_date ? String(a.applied_date).slice(0, 10) : '—' %></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card campaign-glass-tile">
+  <h2>Timeline</h2>
+  <% if (timeline.length === 0) { %>
+    <p class="muted">Nothing recorded yet.</p>
+  <% } else { %>
+    <ol class="timeline">
+      <% for (const item of timeline) { %>
+        <li>
+          <div class="muted"><%= String(item.at).replace('T', ' ').slice(0, 16) %></div>
+          <div><strong><%= label('eventType', item.kind) %></strong>
+            <% if (item.campaign) { %><span class="muted"> · <%= item.brand ? item.brand + ' · ' : '' %><%= item.campaign %></span><% } %>
+          </div>
+          <% if (item.detail) { %><p><%= item.detail %></p><% } %>
+        </li>
+      <% } %>
+    </ol>
+  <% } %>
+</section>
+<%- include('../partials/footer') %>

@@ -16,8 +16,8 @@
   <a class="btn-secondary" href="/departments/<%= department.department_id %>">Back to department</a>
 </div>
 <section class="card campaign-glass-tile">
-  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.
-    These appear on every campaign in this department.</p>
+  <p class="muted"><%= departmentInheritCopy %></p>
+  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" action="/departments/<%= department.department_id %>/questions">
     <div class="panel">

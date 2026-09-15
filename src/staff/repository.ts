@@ -88,6 +88,15 @@ export async function listSelectableInterviewers(): Promise<Pick<StaffRow, 'staf
   return rows;
 }
 
+export async function listStaffByIds(ids: string[]): Promise<Pick<StaffRow, 'staff_id' | 'name'>[]> {
+  if (ids.length === 0) return [];
+  const { rows } = await pool.query<Pick<StaffRow, 'staff_id' | 'name'>>(
+    'SELECT staff_id, name FROM staff WHERE staff_id = ANY($1::uuid[])',
+    [ids]
+  );
+  return rows;
+}
+
 function assertRole(role: string): asserts role is SystemRole {
   if (!(SYSTEM_ROLES as readonly string[]).includes(role)) {
     throw new Error(`Unknown system role: ${role}`);

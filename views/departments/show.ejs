@@ -6,27 +6,16 @@
   </div>
   <div class="form-row">
     <a class="btn-secondary" href="/departments/<%= department.department_id %>/edit">Edit department</a>
-    <a class="btn-primary" href="/departments/<%= department.department_id %>/questions">Set apply questions</a>
   </div>
 </div>
+
 <section class="card campaign-glass-tile">
-  <h2>Screening qualifiers</h2>
-  <% if (!department.screening_qualifiers || department.screening_qualifiers.length === 0) { %>
-    <p class="muted">None set.</p>
-  <% } else { %>
-    <ul><% for (const q of department.screening_qualifiers) { %><li><%= q %></li><% } %></ul>
-  <% } %>
-
-  <h2>Feedback dimensions</h2>
-  <% if (!department.feedback_dimensions || department.feedback_dimensions.length === 0) { %>
-    <p class="muted">None set.</p>
-  <% } else { %>
-    <ul><% for (const d of department.feedback_dimensions) { %><li><%= d %></li><% } %></ul>
-  <% } %>
-
-  <h2>Apply-page questions</h2>
-  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.
-    These appear on every campaign in this department.</p>
+  <div class="card-head">
+    <h2>Apply-page questions</h2>
+    <a class="btn-secondary" href="/departments/<%= department.department_id %>/questions">Set apply questions</a>
+  </div>
+  <p class="muted"><%= departmentInheritCopy %></p>
+  <p class="muted">Up to 3. Single choice, multiple choice or number only — free text is not allowed here.</p>
   <% if (attached.length === 0) { %>
     <p class="muted">None set.</p>
   <% } else { %>
@@ -37,6 +26,28 @@
         </li>
       <% } %>
     </ul>
+  <% } %>
+</section>
+
+<section class="card campaign-glass-tile">
+  <h2>Screening qualifiers</h2>
+  <p class="muted"><%= departmentInheritCopy %></p>
+  <p class="muted">Asked by the recruiter on the telephonic screen. Max 2.</p>
+  <% if (!department.screening_qualifiers || department.screening_qualifiers.length === 0) { %>
+    <p class="muted">None set. <a href="/departments/<%= department.department_id %>/edit">Edit department</a> to add them.</p>
+  <% } else { %>
+    <ul><% for (const q of department.screening_qualifiers) { %><li><%= q %></li><% } %></ul>
+  <% } %>
+</section>
+
+<section class="card campaign-glass-tile">
+  <h2>Feedback dimensions</h2>
+  <p class="muted"><%= departmentInheritCopy %></p>
+  <p class="muted">Scored 1–5 on interview rounds. Max 4.</p>
+  <% if (!department.feedback_dimensions || department.feedback_dimensions.length === 0) { %>
+    <p class="muted">None set. <a href="/departments/<%= department.department_id %>/edit">Edit department</a> to add them.</p>
+  <% } else { %>
+    <ul><% for (const d of department.feedback_dimensions) { %><li><%= d %></li><% } %></ul>
   <% } %>
 </section>
 <%- include('../partials/footer') %>

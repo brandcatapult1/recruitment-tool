@@ -26,8 +26,8 @@
   <p class="muted">Every campaign uses the same eight stages. Assignment is used per candidate when needed.</p>
 
   <h2>Inherited from <%= campaign.department_name %></h2>
-  <p class="muted">Qualifiers, dimensions and department apply questions are set on the department.
-    <% if (user.role === 'admin') { %><a href="/departments/<%= campaign.department_id %>">Edit at department</a><% } %></p>
+  <p class="muted">Apply questions, screening qualifiers and feedback dimensions are set on the department and inherited automatically.
+    <% if (user.role === 'admin') { %><a href="/departments/<%= campaign.department_id %>">View department</a><% } %></p>
   <p><strong>Qualifiers:</strong>
     <%= department && department.screening_qualifiers && department.screening_qualifiers.length
       ? department.screening_qualifiers.join(' · ') : 'None' %></p>

@@ -1,0 +1,39 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Merge with another record</h1>
+    <p class="page-sub">Find the duplicate of <%= person.full_name %> (<%= person.phone %>). You will confirm both records before anything is changed.</p>
+  </div>
+  <a class="btn-secondary" href="/people/<%= person.person_id %>">Cancel</a>
+</div>
+<section class="card campaign-glass-tile">
+  <form method="get" action="/people/<%= person.person_id %>/merge" class="filter-bar">
+    <label>Search
+      <input type="search" name="q" value="<%= q %>" placeholder="Name or phone" autofocus>
+    </label>
+    <div class="form-actions"><button type="submit" class="primary">Search</button></div>
+  </form>
+  <div class="panel">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Phone</th><th>Applications</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% if (!q) { %>
+          <tr><td colspan="4" class="muted">Search for the other record first.</td></tr>
+        <% } else if (matches.length === 0) { %>
+          <tr><td colspan="4" class="muted">No other matching people.</td></tr>
+        <% } %>
+        <% for (const p of matches) { %>
+          <tr>
+            <td><%= p.full_name %></td>
+            <td><%= p.phone %></td>
+            <td><%= p.application_count %></td>
+            <td class="actions"><a href="/people/<%= person.person_id %>/merge/<%= p.person_id %>">Compare</a></td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<%- include('../partials/footer') %>

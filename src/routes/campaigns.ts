@@ -30,10 +30,16 @@ export const campaignsRouter = Router();
 campaignsRouter.use(requireLogin);
 
 async function formLocals(req: ExpressRequest, extras: Record<string, unknown>) {
+  const departments = await listActiveDepartments();
+  const campaign = extras.campaign as { department_id?: string } | undefined;
+  if (campaign?.department_id && !departments.some((d) => d.department_id === campaign.department_id)) {
+    const current = await getDepartment(campaign.department_id);
+    if (current) departments.push(current);
+  }
   return {
     statuses: CAMPAIGN_STATUSES,
     brands: await listBrands(false),
-    departments: await listActiveDepartments(),
+    departments,
     user: sessionUser(req),
     ...extras,
   };
@@ -193,7 +199,7 @@ campaignsRouter.post('/:campaignId/edit', async (req, res, next) => {
         })
       );
     }
-    if (!parsed.publicSlug) parsed.publicSlug = slugify(parsed.roleTitle);
+    if (!parsed.publicSlug) parsed.publicSlug = campaign.public_slug;
     try {
       await updateCampaign(
         campaign.campaign_id,

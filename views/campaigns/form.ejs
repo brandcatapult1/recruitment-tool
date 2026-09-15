@@ -12,7 +12,6 @@
 %>
 <div class="card campaign-glass-tile">
   <h1><%= title %></h1>
-  <p class="muted">One screen. Qualifiers and interview dimensions live on the department, not here.</p>
   <% if (error) { %><p class="error"><%= error %></p><% } %>
   <form method="post" class="campaign-form">
     <div class="grid-2">
@@ -70,9 +69,6 @@
       <div id="jd-editor"></div>
       <textarea name="job_description" id="jd-input" required rows="8"><%= field('job_description') %></textarea>
     </label>
-    <label>Public URL slug <span class="muted">(leave blank to generate from the role title)</span>
-      <input type="text" name="public_slug" value="<%= field('public_slug') %>" placeholder="senior-copywriter">
-    </label>
     <div class="form-actions">
       <button type="submit" class="primary">Save campaign</button>
       <a class="btn-secondary" href="/campaigns">Cancel</a>
@@ -124,7 +120,6 @@
   function filterDepts() {
     var brandId = lockedBrand || (brand && brand.value) || '';
     var options = dept.querySelectorAll('option[data-brand]');
-    var keep = dept.value;
     options.forEach(function (opt) {
       var match = Boolean(brandId) && opt.getAttribute('data-brand') === brandId;
       opt.hidden = !match;

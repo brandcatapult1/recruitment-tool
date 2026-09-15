@@ -1,0 +1,44 @@
+<%- include('../partials/header') %>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Confirm merge</h1>
+    <p class="page-sub">This cannot be undone. The other record is closed and every application and event is moved onto the one you keep.</p>
+  </div>
+  <a class="btn-secondary" href="/people/<%= left.person_id %>/merge">Back</a>
+</div>
+<section class="card campaign-glass-tile">
+  <% if (error) { %><p class="error"><%= error %></p><% } %>
+  <form method="post">
+    <div class="merge-pair">
+      <fieldset>
+        <legend>Record A</legend>
+        <p><strong><%= left.full_name %></strong></p>
+        <p>Phone: <%= left.phone %></p>
+        <p>Applications: <%= left.application_count %></p>
+        <label class="check">
+          <input type="radio" name="survivor" value="<%= left.person_id %>" checked>
+          Keep this record
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Record B</legend>
+        <p><strong><%= right.full_name %></strong></p>
+        <p>Phone: <%= right.phone %></p>
+        <p>Applications: <%= right.application_count %></p>
+        <label class="check">
+          <input type="radio" name="survivor" value="<%= right.person_id %>">
+          Keep this record
+        </label>
+      </fieldset>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="confirm" required>
+      I understand this merge cannot be undone
+    </label>
+    <div class="form-actions">
+      <button type="submit" class="primary">Merge records</button>
+      <a class="btn-secondary" href="/people/<%= left.person_id %>">Cancel</a>
+    </div>
+  </form>
+</section>
+<%- include('../partials/footer') %>

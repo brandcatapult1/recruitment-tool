@@ -507,6 +507,7 @@ textarea, #jd-editor {
   min-height: 2.5rem;
   padding: 0.5rem 0.75rem;
 }
+[hidden] { display: none !important; }
 input:focus, select:focus, textarea:focus, .input-field:focus {
   border-color: var(--brand);
   box-shadow: 0 0 0 2px rgba(94, 106, 210, 0.2);
@@ -631,7 +632,43 @@ code {
   padding: 0.125rem 0.375rem;
 }
 
+.card-head h2 { margin: 0; }
+
+.merge-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.timeline li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.timeline li:last-child { border-bottom: 0; }
+.pill {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+.filter-bar .form-actions { margin-top: 0.5rem; }
+.filter-bar input[type="search"] { min-width: 16rem; width: 20rem; max-width: 100%; }
 #jd-editor { min-height: 200px; background: #fff; }
+
+@media (max-width: 720px) {
+  .merge-pair { grid-template-columns: 1fr; }
+}
 .ql-toolbar.ql-snow {
   border-color: var(--line);
   border-radius: var(--radius-md) var(--radius-md) 0 0;

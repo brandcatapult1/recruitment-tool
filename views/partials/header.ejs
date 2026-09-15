@@ -6,7 +6,7 @@
   <title><%= title %> · Brand Catapult — HR Pulse</title>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/styles.css?v=a1">
+  <link rel="stylesheet" href="/static/styles.css?v=b2">
 </head>
 <body>
 <div class="page<%= typeof user !== 'undefined' && user ? ' has-sidebar' : '' %>">
@@ -31,6 +31,7 @@
   </a>
   <nav>
     <a href="/" class="<%= navOn('/') ? 'active' : '' %>">Home</a>
+    <a href="/people" class="<%= navOn('/people') ? 'active' : '' %>">People</a>
     <a href="/campaigns" class="<%= navOn('/campaigns') ? 'active' : '' %>">Campaigns</a>
     <a href="/questions" class="<%= navOn('/questions') ? 'active' : '' %>">Questions</a>
     <% if (user.role === 'admin') { %>

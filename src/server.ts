@@ -14,15 +14,18 @@ import { departmentsRouter } from './routes/departments';
 import { brandsRouter } from './routes/brands';
 import { applyRouter } from './routes/apply';
 import { filesRouter } from './routes/files';
+import { peopleRouter } from './routes/people';
 import { sessionUser } from './auth/middleware';
 import { flashMiddleware } from './http/flash';
 import { label } from './labels';
+import { DEPARTMENT_ASSESSMENT_INHERIT_COPY } from './constants';
 
 const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.resolve(process.cwd(), 'views'));
 app.locals.label = label;
+app.locals.departmentInheritCopy = DEPARTMENT_ASSESSMENT_INHERIT_COPY;
 if (config.isProduction) app.set('trust proxy', 1);
 
 app.use(express.urlencoded({ extended: false }));
@@ -42,6 +45,7 @@ app.use(authRouter);
 app.use(homeRouter);
 app.use('/staff', staffRouter);
 app.use('/questions', questionsRouter);
+app.use('/people', peopleRouter);
 app.use('/campaigns', campaignsRouter);
 app.use('/departments', departmentsRouter);
 app.use('/brands', brandsRouter);

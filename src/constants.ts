@@ -193,3 +193,14 @@ export const FREE_TEXT_CHAR_LIMIT = 500;
 
 export const PRODUCT_NAME = 'HR Pulse';
 export const PRODUCT_FULL_NAME = 'Brand Catapult — HR Pulse';
+
+/** Shown on each of the three department assessment sets (§5.10). */
+export const DEPARTMENT_ASSESSMENT_INHERIT_COPY =
+  'These apply to every campaign in this department. Set once — campaigns inherit them automatically.';
+
+/**
+ * Person tags (§5.1). Empty until TA signs off the controlled vocabulary
+ * (PRD §12). Assignment UI appears once this list is non-empty.
+ */
+export const PERSON_TAGS = [] as const;
+export type PersonTag = (typeof PERSON_TAGS)[number];
