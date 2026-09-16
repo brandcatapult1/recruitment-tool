@@ -24,12 +24,13 @@
         <span><%= campaign.department_name %></span>
         <% if (campaign.show_salary_publicly && (campaign.salary_band_min || campaign.salary_band_max)) { %>
           <span>
+            <% const inr = (n) => '₹' + Number(n).toLocaleString('en-IN'); %>
             <% if (campaign.salary_band_min && campaign.salary_band_max) { %>
-              <%= campaign.salary_band_min %> – <%= campaign.salary_band_max %>
+              <%= inr(campaign.salary_band_min) %> – <%= inr(campaign.salary_band_max) %>
             <% } else if (campaign.salary_band_min) { %>
-              from <%= campaign.salary_band_min %>
+              from <%= inr(campaign.salary_band_min) %>
             <% } else { %>
-              up to <%= campaign.salary_band_max %>
+              up to <%= inr(campaign.salary_band_max) %>
             <% } %>
           </span>
         <% } %>
