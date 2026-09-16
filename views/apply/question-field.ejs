@@ -4,7 +4,7 @@
   const current = raw == null ? '' : raw;
   const isFree = freeTextTypes.includes(q.type);
 %>
-<label><%= q.text %>
+<label class="apply-field"><%= q.text %>
   <% if (q.type === 'select') { %>
     <select name="<%= name %>" <%= q.is_required ? 'required' : '' %>>
       <option value="">Select</option>

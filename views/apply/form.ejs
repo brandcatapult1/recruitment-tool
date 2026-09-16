@@ -6,34 +6,38 @@
   <title><%= campaign.role_title %> · <%= campaign.apply_page_title %></title>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/apply.css">
+  <link rel="preload" href="/static/fonts/dm-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/dm-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/apply.css?v=apply1">
 </head>
 <body>
   <main class="apply">
-    <p class="eyebrow">
-      <% if (campaign.logo_public_id) { %>
-        <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
-      <% } %>
-      <%= campaign.apply_page_title %>
-    </p>
-    <h1><%= campaign.role_title %></h1>
-    <p class="dept"><%= campaign.department_name %></p>
-
-    <section class="jd"><%- jobDescriptionHtml %></section>
-
-    <% if (campaign.show_salary_publicly && (campaign.salary_band_min || campaign.salary_band_max)) { %>
-      <p class="salary">Salary band:
-        <% if (campaign.salary_band_min && campaign.salary_band_max) { %>
-          <%= campaign.salary_band_min %> – <%= campaign.salary_band_max %>
-        <% } else if (campaign.salary_band_min) { %>
-          from <%= campaign.salary_band_min %>
-        <% } else { %>
-          up to <%= campaign.salary_band_max %>
+    <header class="apply-header">
+      <div class="apply-brand">
+        <% if (campaign.logo_public_id) { %>
+          <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
+        <% } %>
+        <span class="apply-brand-name"><%= campaign.apply_page_title %></span>
+      </div>
+      <h1 class="apply-title"><%= campaign.role_title %></h1>
+      <p class="apply-meta">
+        <span><%= campaign.department_name %></span>
+        <% if (campaign.show_salary_publicly && (campaign.salary_band_min || campaign.salary_band_max)) { %>
+          <span>
+            <% if (campaign.salary_band_min && campaign.salary_band_max) { %>
+              <%= campaign.salary_band_min %> – <%= campaign.salary_band_max %>
+            <% } else if (campaign.salary_band_min) { %>
+              from <%= campaign.salary_band_min %>
+            <% } else { %>
+              up to <%= campaign.salary_band_max %>
+            <% } %>
+          </span>
         <% } %>
       </p>
-    <% } %>
+      <section class="jd"><%- jobDescriptionHtml %></section>
+    </header>
 
-    <% if (error) { %><p class="error"><%= error %></p><% } %>
+    <% if (error) { %><p class="error" role="alert"><%= error %></p><% } %>
 
     <form method="post" enctype="multipart/form-data" id="apply-form">
       <input type="hidden" name="submission_id" value="<%= submissionId %>">
@@ -41,65 +45,75 @@
         <input type="text" name="website" tabindex="-1" autocomplete="off">
       </label>
 
-      <label>Full name
-        <input type="text" name="full_name" required value="<%= values.full_name || '' %>">
-      </label>
-      <label>Phone
-        <input type="tel" name="phone" required value="<%= values.phone || '' %>">
-      </label>
-      <label>Email
-        <input type="email" name="email" required value="<%= values.email || '' %>">
-      </label>
-      <label>Current city
-        <input type="text" name="city" required value="<%= values.city || '' %>">
-      </label>
-      <label>Current CTC (annual)
-        <input type="number" name="current_comp" min="0" value="<%= values.current_comp || '' %>">
-      </label>
-      <label class="check">
-        <input type="checkbox" name="not_currently_employed" value="true" <%= values.not_currently_employed === 'true' || values.not_currently_employed === 'on' ? 'checked' : '' %>>
-        I am not currently employed
-      </label>
-      <label>Earliest joining date
-        <input type="date" name="earliest_join_date" required value="<%= values.earliest_join_date || '' %>">
-      </label>
-      <label>CV
-        <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf" required>
-      </label>
-      <label>Work links <span class="hint">Portfolio, LinkedIn, site — paste links that do not expire. Avoid WeTransfer or other transfer links that lapse.</span>
-        <textarea name="work_links" rows="3" placeholder="https://"><%= values.work_links || '' %></textarea>
-      </label>
-      <label>Or a portfolio file <span class="hint">Optional. Use this instead of links if you prefer.</span>
-        <input type="file" name="portfolio">
-      </label>
-      <label>Years of experience in this discipline
-        <input type="number" name="years_in_discipline" min="0" step="0.5" required value="<%= values.years_in_discipline || '' %>">
-        <span class="hint">Not total years worked — years in this kind of work.</span>
-      </label>
-      <label>Why do you want this role?
-        <textarea name="motivation" required maxlength="<%= charLimit %>" data-counter="motivation-count" rows="4"><%= values.motivation || '' %></textarea>
-        <span class="count" id="motivation-count">0 / <%= charLimit %></span>
-      </label>
+      <section class="apply-section">
+        <h2 class="apply-section-label">About you</h2>
+        <label class="apply-field">Full name
+          <input type="text" name="full_name" required autocomplete="name" value="<%= values.full_name || '' %>">
+        </label>
+        <label class="apply-field">Phone
+          <input type="tel" name="phone" required autocomplete="tel" value="<%= values.phone || '' %>">
+        </label>
+        <label class="apply-field">Email
+          <input type="email" name="email" required autocomplete="email" value="<%= values.email || '' %>">
+        </label>
+        <label class="apply-field">Current city
+          <input type="text" name="city" required autocomplete="address-level2" value="<%= values.city || '' %>">
+        </label>
+      </section>
+
+      <section class="apply-section">
+        <h2 class="apply-section-label">Your situation</h2>
+        <label class="apply-field">Current CTC (annual)
+          <input type="number" name="current_comp" min="0" value="<%= values.current_comp || '' %>">
+        </label>
+        <label class="check">
+          <input type="checkbox" name="not_currently_employed" value="true" <%= values.not_currently_employed === 'true' || values.not_currently_employed === 'on' ? 'checked' : '' %>>
+          I am not currently employed
+        </label>
+        <label class="apply-field">Earliest joining date
+          <input type="date" name="earliest_join_date" required value="<%= values.earliest_join_date || '' %>">
+        </label>
+      </section>
+
+      <section class="apply-section">
+        <h2 class="apply-section-label">Your work</h2>
+        <label class="apply-field">CV
+          <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf" required>
+        </label>
+        <label class="apply-field">Work links
+          <span class="hint">Portfolio, LinkedIn, site — paste links that do not expire. Avoid WeTransfer or other transfer links that lapse.</span>
+          <textarea name="work_links" rows="3" placeholder="https://"><%= values.work_links || '' %></textarea>
+        </label>
+        <label class="apply-field">Or a portfolio file
+          <span class="hint">Optional. Use this instead of links if you prefer.</span>
+          <input type="file" name="portfolio">
+        </label>
+        <label class="apply-field">Years of experience in this discipline
+          <input type="number" name="years_in_discipline" min="0" step="0.5" required value="<%= values.years_in_discipline || '' %>">
+          <span class="hint">Not total years worked — years in this kind of work.</span>
+        </label>
+        <label class="apply-field">Why do you want this role?
+          <textarea name="motivation" required maxlength="<%= charLimit %>" data-counter="motivation-count" rows="4"><%= values.motivation || '' %></textarea>
+          <span class="count" id="motivation-count">0 / <%= charLimit %></span>
+        </label>
+      </section>
 
       <% const deptQs = questions.filter((q) => q.tier === 'department'); %>
       <% const campQs = questions.filter((q) => q.tier === 'campaign'); %>
-
-      <% if (deptQs.length) { %>
-        <h2>A few specifics</h2>
-        <% for (const q of deptQs) { %>
-          <%- include('question-field', { q, values, charLimit, freeTextTypes }) %>
-        <% } %>
-      <% } %>
-
-      <% if (campQs.length) { %>
-        <h2>For this role</h2>
-        <% for (const q of campQs) { %>
-          <%- include('question-field', { q, values, charLimit, freeTextTypes }) %>
-        <% } %>
+      <% if (deptQs.length || campQs.length) { %>
+        <section class="apply-section">
+          <h2 class="apply-section-label">A few specifics</h2>
+          <% for (const q of deptQs) { %>
+            <%- include('./question-field', { q, values, charLimit, freeTextTypes }) %>
+          <% } %>
+          <% for (const q of campQs) { %>
+            <%- include('./question-field', { q, values, charLimit, freeTextTypes }) %>
+          <% } %>
+        </section>
       <% } %>
 
       <div class="consent">
-        <p>By submitting, you agree that Brand Catapult can use these details to consider you for this role and related openings, and to contact you about them. We keep applications for 24 months.</p>
+        <p>By submitting, you agree that <%= campaign.apply_page_title %> can use these details to consider you for this role and related openings, and to contact you about them. We keep applications for 24 months.</p>
         <p>We’ll be in touch if there’s a next step.</p>
       </div>
       <button type="submit" class="submit" id="submit-btn">Submit application</button>
