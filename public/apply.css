@@ -92,9 +92,9 @@ body {
   margin: 0 0 2rem;
 }
 .apply-logo {
-  height: 3.25rem;
+  height: 3.75rem;
   width: auto;
-  max-width: 12rem;
+  max-width: 13.5rem;
   object-fit: contain;
 }
 .apply-brand-name {
@@ -106,10 +106,10 @@ body {
 }
 
 .apply-title {
-  font-size: clamp(2.35rem, 7.5vw, 3.75rem);
+  font-size: clamp(2.6rem, 8.5vw, 4.25rem);
   font-weight: 700;
-  line-height: 1.02;
-  letter-spacing: -0.045em;
+  line-height: 0.98;
+  letter-spacing: -0.05em;
   margin: 0 0 0.85rem;
   color: var(--ink);
 }
@@ -422,11 +422,11 @@ textarea:focus,
     top: 2rem;
   }
   .apply-logo {
-    height: 4.25rem;
-    max-width: 14rem;
+    height: 4.75rem;
+    max-width: 16rem;
   }
   .apply-title {
-    font-size: 3.85rem;
+    font-size: 4.5rem;
   }
   .jd {
     font-size: 1.125rem;

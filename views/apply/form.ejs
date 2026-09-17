@@ -8,7 +8,7 @@
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/static/fonts/geist-sans-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/geist-sans-700.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/apply.css?v=apply2">
+  <link rel="stylesheet" href="/static/apply.css?v=apply3">
 </head>
 <body>
   <div class="apply-shell">
@@ -206,18 +206,23 @@
       document.addEventListener('click', function (e) {
         if (!root.contains(e.target)) close();
       });
+    })();
+
     document.getElementById('apply-form').addEventListener('submit', function (e) {
-      if (!hidden.value) {
+      var hidden = document.getElementById('city-value');
+      var search = document.getElementById('city-search');
+      var root = document.querySelector('[data-city-picker]');
+      if (hidden && search && root && !hidden.value) {
         e.preventDefault();
         search.focus();
-        open();
-        filter(search.value);
+        root.classList.add('open');
+        search.setAttribute('aria-expanded', 'true');
         return;
       }
       var btn = document.getElementById('submit-btn');
-      btn.disabled = true; btn.textContent = 'Submitting…';
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
     });
-    })();
   </script>
 </body>
 </html>
