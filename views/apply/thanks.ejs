@@ -6,25 +6,31 @@
   <title>Application received · <%= typeof campaign !== 'undefined' && campaign ? campaign.apply_page_title : 'Careers' %></title>
   <link rel="icon" href="/favicon.ico" sizes="32x32">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="preload" href="/static/fonts/dm-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="/static/fonts/dm-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/static/apply.css?v=apply1">
+  <link rel="preload" href="/static/fonts/geist-sans-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/geist-sans-700.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/apply.css?v=apply2">
 </head>
 <body>
-  <main class="apply">
-    <header class="apply-header">
-      <% if (typeof campaign !== 'undefined' && campaign) { %>
-        <div class="apply-brand">
-          <% if (campaign.logo_public_id) { %>
-            <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
+  <div class="apply-shell">
+    <main class="apply">
+      <div class="apply-stage" style="grid-template-columns: 1fr;">
+        <header class="apply-intro">
+          <% if (typeof campaign !== 'undefined' && campaign) { %>
+            <div class="apply-brand">
+              <% if (campaign.logo_public_id) { %>
+                <img class="apply-logo" src="/brands/<%= campaign.brand_id %>/logo" alt="">
+              <% } %>
+              <span class="apply-brand-name"><%= campaign.apply_page_title %></span>
+            </div>
           <% } %>
-          <span class="apply-brand-name"><%= campaign.apply_page_title %></span>
+          <h1 class="apply-title">We’ve got your application</h1>
+        </header>
+        <div>
+          <p class="thanks-lead">Thank you for taking the time. If there’s a next step, someone from our talent team will be in touch.</p>
+          <p class="thanks-note">You can close this page.</p>
         </div>
-      <% } %>
-      <h1 class="apply-title">We’ve got your application</h1>
-    </header>
-    <p class="thanks-lead">Thank you for taking the time. If there’s a next step, someone from our talent team will be in touch.</p>
-    <p class="thanks-note">You can close this page.</p>
-  </main>
+      </div>
+    </main>
+  </div>
 </body>
 </html>

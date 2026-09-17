@@ -229,3 +229,45 @@ export const DEPARTMENT_ASSESSMENT_INHERIT_COPY =
  */
 export const PERSON_TAGS = [] as const;
 export type PersonTag = (typeof PERSON_TAGS)[number];
+
+/**
+ * Apply-form current city. NCR first, then major Indian cities, then Other.
+ * Free text is not accepted (R2) — the public form is a searchable picker
+ * over this list only.
+ */
+export const APPLY_CITIES = [
+  // NCR
+  'Delhi',
+  'New Delhi',
+  'Noida',
+  'Greater Noida',
+  'Gurugram',
+  'Ghaziabad',
+  'Faridabad',
+  // Major metros / hubs
+  'Mumbai',
+  'Bengaluru',
+  'Hyderabad',
+  'Chennai',
+  'Pune',
+  'Kolkata',
+  'Ahmedabad',
+  'Jaipur',
+  'Chandigarh',
+  'Lucknow',
+  'Indore',
+  'Kochi',
+  'Coimbatore',
+  'Vadodara',
+  'Surat',
+  'Nagpur',
+  'Bhopal',
+  'Goa',
+  'Dehradun',
+  'Other',
+] as const;
+export type ApplyCity = (typeof APPLY_CITIES)[number];
+
+export function isApplyCity(value: string): value is ApplyCity {
+  return (APPLY_CITIES as readonly string[]).includes(value);
+}

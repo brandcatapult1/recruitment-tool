@@ -4,7 +4,7 @@ import { writeEvent } from '../events';
 import { buildQuestionAnswers, type QuestionValues } from '../snapshots';
 import { uploadCandidateFile, isCloudinaryConfigured } from '../files/cloudinary';
 import { normalisePhone } from './phone';
-import { FREE_TEXT_CHAR_LIMIT } from '../constants';
+import { FREE_TEXT_CHAR_LIMIT, isApplyCity } from '../constants';
 import type { CampaignRow } from '../campaigns/repository';
 import type { Source } from '../constants';
 
@@ -203,6 +203,7 @@ function parseFields(fields: ApplyFields):
   if (!fullName) return { error: 'Full name is required.' };
   if (!email || !email.includes('@')) return { error: 'A valid email is required.' };
   if (!city) return { error: 'Current city is required.' };
+  if (!isApplyCity(city)) return { error: 'Pick a city from the list.' };
   if (!earliestJoinDate) return { error: 'Earliest joining date is required.' };
   if (!Number.isFinite(yearsInDiscipline) || yearsInDiscipline < 0) {
     return { error: 'Years of experience in this discipline is required.' };

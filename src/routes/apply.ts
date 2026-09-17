@@ -5,7 +5,7 @@ import { getOpenCampaignBySlug } from '../campaigns/repository';
 import { resolveSource } from '../campaigns/links';
 import { loadLiveApplyQuestions } from '../snapshots';
 import { submitApplication, type ApplyFields } from '../apply/submit';
-import { FREE_TEXT_CHAR_LIMIT, FREE_TEXT_QUESTION_TYPES } from '../constants';
+import { FREE_TEXT_CHAR_LIMIT, FREE_TEXT_QUESTION_TYPES, APPLY_CITIES } from '../constants';
 import { renderJobDescription } from '../html';
 
 const upload = multer({
@@ -50,6 +50,7 @@ applyRouter.get(['/apply/:slug', '/apply/:slug/:source'], async (req, res, next)
       submissionId: randomUUID(),
       charLimit: FREE_TEXT_CHAR_LIMIT,
       freeTextTypes: FREE_TEXT_QUESTION_TYPES,
+      cities: APPLY_CITIES,
       error: null,
       values: {},
     });
@@ -98,6 +99,7 @@ applyRouter.post(
           submissionId: fields.submissionId || randomUUID(),
           charLimit: FREE_TEXT_CHAR_LIMIT,
           freeTextTypes: FREE_TEXT_QUESTION_TYPES,
+          cities: APPLY_CITIES,
           error: result.error,
           values: body,
         });
