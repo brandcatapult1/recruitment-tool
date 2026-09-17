@@ -61,6 +61,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS department_brand_norm_name_active_unique
 
 -- Future seeds: if an active row already matches the normalised seed name,
 -- apply copy there and rename to the canonical spelling. Never insert a twin.
+-- Drop first: 0008 may have left the same temp name in this session/transaction.
+DROP TABLE IF EXISTS dept_assessment_seed;
 CREATE TEMP TABLE dept_assessment_seed (
   brand_name text NOT NULL,
   dept_name  text NOT NULL,

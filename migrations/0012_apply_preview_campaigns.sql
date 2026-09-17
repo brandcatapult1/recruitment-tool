@@ -72,8 +72,9 @@ SELECT d.department_id, q.question_id, o.ord, true
     ('Which kinds of design work have you done?', 2),
     ('Your design education background', 3)
   ) AS o(text, ord)
-  JOIN question q ON q.text = o.text
-  JOIN brand_row b ON b.brand_id = q.brand_id
+  -- Join the INSERT CTE, not question: WITH data-modifying CTEs share one
+  -- snapshot and cannot see each other's table writes.
+  JOIN ins q ON q.text = o.text
 ON CONFLICT (department_id, question_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -262,8 +263,7 @@ SELECT d.department_id, q.question_id, o.ord, true
     ('Have you shot for premium or luxury brands?', 2),
     ('Do you own your equipment?', 3)
   ) AS o(text, ord)
-  JOIN question q ON q.text = o.text
-  JOIN brand_row b ON b.brand_id = q.brand_id
+  JOIN ins q ON q.text = o.text
 ON CONFLICT (department_id, question_id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
