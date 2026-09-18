@@ -547,6 +547,30 @@ input[type="file"] {
 }
 .filter-bar label { margin: 0; }
 .filter-bar select { width: auto; min-width: 12rem; }
+.req {
+  color: #c62828;
+  font-weight: 600;
+  margin-left: 0.15rem;
+}
+.section-label {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+label.apply-field {
+  display: block;
+  margin: 0 0 1rem;
+}
+label.apply-field .multi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  font-weight: 400;
+}
 input[type="checkbox"] {
   width: 1rem;
   height: 1rem;

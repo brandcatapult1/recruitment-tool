@@ -5,6 +5,7 @@
     <p class="page-sub"><%= campaign.brand_name %> · <%= campaign.department_name %> · Board. New applications land in Applied — triage them here.</p>
   </div>
   <div class="form-row">
+    <a class="btn-primary" href="/candidates/new?campaign_id=<%= campaign.campaign_id %>">Add candidate</a>
     <a class="btn-secondary" href="/campaigns/<%= campaign.campaign_id %>">Campaign</a>
   </div>
 </div>

@@ -25,6 +25,8 @@ export interface BoardCard {
   owner_staff_id: string | null;
   owner_name: string | null;
   source: string | null;
+  referrer_name: string | null;
+  referrer_staff_name: string | null;
   applied_date: Date | string | null;
   outcome_reason: string | null;
   application_count: number;
@@ -46,13 +48,15 @@ export interface AgedApplication {
 export async function listBoardCards(campaignId: string): Promise<BoardCard[]> {
   const { rows } = await pool.query<BoardCard>(
     `SELECT a.application_id, a.person_id, a.stage, a.stage_entered_date, a.owner_staff_id,
-            a.source, a.applied_date, a.outcome_reason,
+            a.source, a.referrer_name, a.applied_date, a.outcome_reason,
             p.full_name, p.do_not_contact,
             s.name AS owner_name,
+            rs.name AS referrer_staff_name,
             (SELECT count(*)::int FROM application x WHERE x.person_id = a.person_id) AS application_count
        FROM application a
        JOIN person p ON p.person_id = a.person_id
        LEFT JOIN staff s ON s.staff_id = a.owner_staff_id
+       LEFT JOIN staff rs ON rs.staff_id = a.referrer_staff_id
       WHERE a.campaign_id = $1
       ORDER BY a.applied_date ASC NULLS LAST, p.full_name ASC`,
     [campaignId]

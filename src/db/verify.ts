@@ -113,6 +113,14 @@ export async function verifySchema(): Promise<void> {
     throw new Error('[verify] idx_application_campaign_stage is missing');
   }
 
+  const { rows: entryChannel } = await pool.query(
+    `SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'application' AND column_name = 'entry_channel'`
+  );
+  if (entryChannel.length === 0) {
+    throw new Error('[verify] application.entry_channel is missing (M4.5)');
+  }
+
   console.log(
     `[verify] schema ok: ${EXPECTED_TABLES.length} tables, event append-only trigger present, person.phone unique, campaign_question unique, brand_id on campaign, department and question`
   );

@@ -68,16 +68,23 @@
   <div class="panel">
     <table>
       <thead>
-        <tr><th>Role</th><th>Brand</th><th>Stage</th><th>Applied</th></tr>
+        <tr><th>Role</th><th>Brand</th><th>Source</th><th>Stage</th><th>Applied</th></tr>
       </thead>
       <tbody>
         <% if (applications.length === 0) { %>
-          <tr><td colspan="4" class="muted">No applications.</td></tr>
+          <tr><td colspan="5" class="muted">No applications.</td></tr>
         <% } %>
         <% for (const a of applications) { %>
           <tr>
             <td><%= a.role_title %></td>
             <td><%= a.brand_name %></td>
+            <td>
+              <% if (a.source) { %><%= label('source', a.source) %><% } else { %>—<% } %>
+              <% if (a.source === 'referral' && (a.referrer_name || a.referrer_staff_name)) { %>
+                <span class="muted"> · via <%= a.referrer_name || a.referrer_staff_name %><% if (a.referrer_name && a.referrer_staff_name) { %> (<%= a.referrer_staff_name %>)<% } %></span>
+              <% } %>
+              <% if (a.entry_channel === 'manual') { %><span class="muted"> · manual</span><% } %>
+            </td>
             <td><%= label('stage', a.stage) %></td>
             <td><%= a.applied_date ? String(a.applied_date).slice(0, 10) : '—' %></td>
           </tr>

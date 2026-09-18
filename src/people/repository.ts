@@ -37,6 +37,9 @@ export interface PersonApplication {
   department_name: string;
   stage: string;
   source: string | null;
+  referrer_name: string | null;
+  referrer_staff_name: string | null;
+  entry_channel: string | null;
   applied_date: string | null;
   outcome_reason: string | null;
 }
@@ -115,12 +118,15 @@ export async function getPerson(personId: string): Promise<PersonRow | null> {
 
 export async function listPersonApplications(personId: string): Promise<PersonApplication[]> {
   const { rows } = await pool.query<PersonApplication>(
-    `SELECT a.application_id, a.campaign_id, a.stage, a.source, a.applied_date, a.outcome_reason,
-            c.role_title, b.name AS brand_name, d.name AS department_name
+    `SELECT a.application_id, a.campaign_id, a.stage, a.source, a.referrer_name, a.entry_channel,
+            a.applied_date, a.outcome_reason,
+            c.role_title, b.name AS brand_name, d.name AS department_name,
+            rs.name AS referrer_staff_name
        FROM application a
        JOIN campaign c ON c.campaign_id = a.campaign_id
        JOIN brand b ON b.brand_id = c.brand_id
        JOIN department d ON d.department_id = c.department_id
+       LEFT JOIN staff rs ON rs.staff_id = a.referrer_staff_id
       WHERE a.person_id = $1
       ORDER BY a.applied_date DESC NULLS LAST`,
     [personId]

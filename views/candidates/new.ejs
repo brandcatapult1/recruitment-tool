@@ -1,0 +1,170 @@
+<%- include('../partials/header') %>
+<%
+  const v = values || {};
+  function val(name) {
+    const x = v[name];
+    if (x == null) return '';
+    return Array.isArray(x) ? x : String(x);
+  }
+  const source = val('source');
+%>
+<div class="page-head">
+  <div>
+    <h1 class="page-title">Add candidate</h1>
+    <p class="page-sub">Manual entry for referrals and off-page applicants. Same phone dedupe as the apply page — never creates a duplicate person.</p>
+  </div>
+  <div class="form-row">
+    <% if (campaign) { %>
+      <a class="btn-secondary" href="/campaigns/<%= campaign.campaign_id %>/board">Back to board</a>
+    <% } else { %>
+      <a class="btn-secondary" href="/campaigns">Campaigns</a>
+    <% } %>
+  </div>
+</div>
+
+<div class="card campaign-glass-tile narrow wide">
+  <% if (error) { %><p class="error" role="alert"><%= error %></p><% } %>
+  <form method="post" action="/candidates/new" enctype="multipart/form-data" id="manual-entry-form">
+    <input type="hidden" name="submission_id" value="<%= submissionId %>">
+
+    <label>Campaign<span class="req" aria-hidden="true">*</span>
+      <span class="muted">Brand comes from the campaign.</span>
+      <select name="campaign_id" id="campaign-select" required>
+        <option value="" disabled <%= campaign ? '' : 'selected' %>>Select an open campaign</option>
+        <% for (const c of campaigns) { %>
+          <option value="<%= c.campaign_id %>" <%= campaign && campaign.campaign_id === c.campaign_id ? 'selected' : '' %>>
+            <%= c.brand_name %> · <%= c.role_title %>
+          </option>
+        <% } %>
+      </select>
+    </label>
+    <% if (campaign) { %>
+      <p class="muted">Brand: <%= campaign.brand_name %> · <%= campaign.department_name %></p>
+    <% } %>
+
+    <h2 class="section-label">About them</h2>
+    <div class="grid-2">
+      <label>Full name<span class="req" aria-hidden="true">*</span>
+        <input type="text" name="full_name" required autocomplete="name" value="<%= val('full_name') %>" autofocus>
+      </label>
+      <label>Phone<span class="req" aria-hidden="true">*</span>
+        <input type="tel" name="phone" required autocomplete="tel" value="<%= val('phone') %>">
+      </label>
+      <label>Email
+        <input type="email" name="email" autocomplete="email" value="<%= val('email') %>">
+      </label>
+      <label>Current city
+        <select name="city">
+          <option value="">—</option>
+          <% for (const city of cities) { %>
+            <option value="<%= city %>" <%= val('city') === city ? 'selected' : '' %>><%= city %></option>
+          <% } %>
+        </select>
+      </label>
+    </div>
+
+    <h2 class="section-label">Situation</h2>
+    <div class="grid-2">
+      <label>Current CTC (annual)
+        <input type="number" name="current_comp" min="0" value="<%= val('current_comp') %>">
+      </label>
+      <label>Earliest joining date
+        <input type="date" name="earliest_join_date" value="<%= val('earliest_join_date') %>">
+      </label>
+    </div>
+    <label class="check">
+      <input type="checkbox" name="not_currently_employed" value="true" <%= val('not_currently_employed') === 'true' ? 'checked' : '' %>>
+      Not currently employed
+    </label>
+
+    <h2 class="section-label">Files &amp; links</h2>
+    <label>CV
+      <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf">
+    </label>
+    <label>Work links
+      <span class="muted">Optional. Portfolio, LinkedIn, site — non-expiring links.</span>
+      <textarea name="work_links" rows="2" placeholder="https://"><%= val('work_links') %></textarea>
+    </label>
+    <label>Or a portfolio file
+      <input type="file" name="portfolio">
+    </label>
+
+    <h2 class="section-label">Source</h2>
+    <label>Source<span class="req" aria-hidden="true">*</span>
+      <select name="source" id="source-select" required>
+        <option value="" disabled <%= source ? '' : 'selected' %>>Select</option>
+        <% for (const s of sources) { %>
+          <option value="<%= s %>" <%= source === s ? 'selected' : '' %>><%= label('source', s) %></option>
+        <% } %>
+      </select>
+    </label>
+    <div id="referral-fields" <%= source === 'referral' ? '' : 'hidden' %>>
+      <label>Referrer name<span class="req" aria-hidden="true">*</span>
+        <span class="muted">Required for referrals.</span>
+        <input type="text" name="referrer_name" id="referrer-name" value="<%= val('referrer_name') %>">
+      </label>
+      <label>Referrer staff (optional)
+        <span class="muted">Link an internal employee for referrals-per-employee reporting.</span>
+        <select name="referrer_staff_id">
+          <option value="">—</option>
+          <% for (const s of staff) { %>
+            <option value="<%= s.staff_id %>" <%= val('referrer_staff_id') === s.staff_id ? 'selected' : '' %>><%= s.name %></option>
+          <% } %>
+        </select>
+      </label>
+    </div>
+
+    <label>How did you get this candidate’s details?<span class="req" aria-hidden="true">*</span>
+      <span class="muted">DPDP paper trail. We do not invent a consent date for manual entry — this note explains why we hold their data.</span>
+      <textarea name="data_provenance" required maxlength="500" rows="2" placeholder="e.g. Referral from Priya; they emailed careers@…; met at an event"><%= val('data_provenance') %></textarea>
+    </label>
+
+    <% if (questions.length) { %>
+      <h2 class="section-label">A few specifics</h2>
+      <p class="muted">Optional here. Manually added referrals often will not have answered these.</p>
+      <% for (const q of questions) { %>
+        <%- include('../apply/question-field', { q: { ...q, is_required: false }, values: v, charLimit, freeTextTypes }) %>
+      <% } %>
+    <% } else if (campaign) { %>
+      <p class="muted">No department or campaign questions on this role.</p>
+    <% } else { %>
+      <p class="muted">Pick a campaign to load optional role questions.</p>
+    <% } %>
+
+    <div class="form-actions">
+      <button type="submit" class="primary" id="submit-btn">Save candidate</button>
+      <% if (campaign) { %>
+        <a class="btn-secondary" href="/campaigns/<%= campaign.campaign_id %>/board">Cancel</a>
+      <% } else { %>
+        <a class="btn-secondary" href="/campaigns">Cancel</a>
+      <% } %>
+    </div>
+  </form>
+</div>
+<script>
+(function () {
+  var source = document.getElementById('source-select');
+  var referral = document.getElementById('referral-fields');
+  var referrerName = document.getElementById('referrer-name');
+  function sync() {
+    var isReferral = source.value === 'referral';
+    referral.hidden = !isReferral;
+    if (referrerName) referrerName.required = isReferral;
+  }
+  source.addEventListener('change', sync);
+  sync();
+
+  var campaign = document.getElementById('campaign-select');
+  campaign.addEventListener('change', function () {
+    if (!campaign.value) return;
+    window.location = '/candidates/new?campaign_id=' + encodeURIComponent(campaign.value);
+  });
+
+  document.getElementById('manual-entry-form').addEventListener('submit', function () {
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+  });
+})();
+</script>
+<%- include('../partials/footer') %>

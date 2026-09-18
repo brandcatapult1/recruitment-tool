@@ -82,6 +82,7 @@ export async function submitApplication(
       email: parsed.email,
       city: parsed.city,
       source,
+      setConsent: true,
     });
 
     const existing = await client.query<{ application_id: string }>(
@@ -235,15 +236,21 @@ function parseFields(fields: ApplyFields):
   };
 }
 
-async function findOrCreatePerson(
+/**
+ * Phone-keyed person create/attach — shared by public apply (M2) and manual
+ * entry (M4.5). Public apply sets consent_date; manual entry leaves it null
+ * (no consent click) and never invents one.
+ */
+export async function findOrCreatePerson(
   client: PoolClient,
   input: {
     fullName: string;
     phone: string;
     phoneNeedsReview: boolean;
-    email: string;
-    city: string;
+    email: string | null;
+    city: string | null;
     source: Source;
+    setConsent: boolean;
   }
 ): Promise<{ person_id: string }> {
   const found = await client.query<{ person_id: string; merged_into: string | null }>(
@@ -262,14 +269,24 @@ async function findOrCreatePerson(
       id = next.rows[0].person_id;
       merged = next.rows[0].merged_into;
     }
-    await client.query(
-      `UPDATE person
-          SET email = COALESCE(email, $2),
-              city = COALESCE(city, $3),
-              consent_date = now()
-        WHERE person_id = $1`,
-      [id, input.email, input.city]
-    );
+    if (input.setConsent) {
+      await client.query(
+        `UPDATE person
+            SET email = COALESCE(email, $2),
+                city = COALESCE(city, $3),
+                consent_date = now()
+          WHERE person_id = $1`,
+        [id, input.email, input.city]
+      );
+    } else {
+      await client.query(
+        `UPDATE person
+            SET email = COALESCE(email, $2),
+                city = COALESCE(city, $3)
+          WHERE person_id = $1`,
+        [id, input.email, input.city]
+      );
+    }
     return { person_id: id };
   }
 
@@ -278,9 +295,17 @@ async function findOrCreatePerson(
       `INSERT INTO person (
          full_name, phone, phone_needs_review, email, city,
          first_seen_date, first_source, consent_date
-       ) VALUES ($1,$2,$3,$4,$5,now(),$6,now())
+       ) VALUES ($1,$2,$3,$4,$5,now(),$6,$7)
        RETURNING person_id`,
-      [input.fullName, input.phone, input.phoneNeedsReview, input.email, input.city, input.source]
+      [
+        input.fullName,
+        input.phone,
+        input.phoneNeedsReview,
+        input.email,
+        input.city,
+        input.source,
+        input.setConsent ? new Date() : null,
+      ]
     );
     return inserted.rows[0];
   } catch (err) {

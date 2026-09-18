@@ -6,6 +6,10 @@
   </div>
   <p class="muted board-card-meta">
     <%= label('stage', card.stage) %>
+    <% if (card.source) { %> · <%= label('source', card.source) %><% } %>
+    <% if (card.source === 'referral' && (card.referrer_name || card.referrer_staff_name)) { %>
+      · via <%= card.referrer_name || card.referrer_staff_name %><% if (card.referrer_name && card.referrer_staff_name) { %> (<%= card.referrer_staff_name %>)<% } %>
+    <% } %>
     <% if (card.outcome_reason) { %> · <%= label('outcomeReason', card.outcome_reason) %><% } %>
   </p>
 
